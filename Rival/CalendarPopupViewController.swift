@@ -34,12 +34,13 @@ class CalendarViewController: UIViewController {
     @IBOutlet weak var calendar: JTACMonthView!
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var doneButton: UIBarButtonItem!
+    ///The month of this date represents the month currently viewed
     var currentDate = Date().startOfMonth
     var firstDate: Date? = nil
     var secondDate: Date? = nil
-    var startDate = DateFormats.full.date(from: "01.01.2019")!
-    var endDate = DateFormats.full.date(from: "01.01.2021")!
-    var selectDateCallback: ((Date) -> Void)!
+    let startDate = DateFormats.full.date(from: "01.01.2019")!
+    let endDate = DateFormats.full.date(from: "01.01.2021")!
+    var singleSelectionCallback: ((Date) -> Void)!
     var rangeSelectionCallback: ((Date, Date) -> Void)!
     var selectionMode: Mode = .singleSelection
     var todayButtonPressed = false
@@ -184,7 +185,7 @@ extension CalendarViewController: JTACMonthViewDelegate {
         switch(self.selectionMode) {
         case .singleSelection:
             self.firstDate = date
-            selectDateCallback(date)
+            singleSelectionCallback(date)
         case .rangeSelection:
             if self.firstDate == nil {
                 self.firstDate = date

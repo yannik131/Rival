@@ -45,7 +45,7 @@ class PlotViewController: UIViewController {
         }
     }
      
-    let filesystem = Filesystem.getInstance()
+    let filesystem = Filesystem.shared
     var selectedPlotType: PlotType = .Line
     var startDate: Date = Date().addingTimeInterval(TimeInterval(exactly: 86400 * 7 * -1)!)
     var endDate: Date = Date()
@@ -62,7 +62,10 @@ class PlotViewController: UIViewController {
         super.viewDidLoad()
         self.xAxis = self.lineChartView.xAxis
         self.yAxis = self.lineChartView.leftAxis
-        self.toPlot = self.filesystem.getAllActivities()[0]
+        let activities = filesystem.root.orderedActivities
+        if !activities.isEmpty {
+            toPlot = activities[0]
+        }
      }
      
     //MARK: - Public Methods
@@ -92,7 +95,7 @@ class PlotViewController: UIViewController {
         if set.entries[0].y > yAxis.axisMaximum / 2 {
             position = .bottom
         }
-        if toPlot!.measurementMethod == .YesNo {
+        if toPlot!.measurementMethod == .yesNo {
             position = MyYAxisRenderer.Position.top
             yAxis.axisMaximum = 1
             yAxis.axisMinimum = 0
@@ -131,13 +134,13 @@ class PlotViewController: UIViewController {
     
     private func getSumString() -> String {
         switch(toPlot!.measurementMethod) {
-        case .YesNo:
+        case .yesNo:
             return "Summe: \(Int(rawTotal))x"
-        case .Time:
+        case .time:
             return "Summe: \(Date.timeString(Int(rawTotal)))"
-        case .DoubleWithUnit:
-            return "Summe: \(Double(round(rawTotal * 100) / 100)) [\(toPlot!.unit!)]"
-        case .IntWithoutUnit:
+        case .doubleWithUnit:
+            return "Summe: \(Double(round(rawTotal * 100) / 100)) [\(toPlot!.unit)]"
+        case .intWithoutUnit:
             return "Summe: \(Int(rawTotal))"
         }
     }
@@ -148,11 +151,11 @@ class PlotViewController: UIViewController {
         let title: String
         let maximum = entries.max(by: {$0.y < $1.y})!.y
         switch(activity.measurementMethod) {
-        case .DoubleWithUnit:
-            title = activity.name + " [" + activity.unit! + "]"
-        case .IntWithoutUnit:
+        case .doubleWithUnit:
+            title = activity.name + " [" + activity.unit + "]"
+        case .intWithoutUnit:
             title = activity.name
-        case .Time:
+        case .time:
             let (hours, minutes, _) = Date.split(Int(maximum))
             let factor: Double
             if hours > 0 {
@@ -170,7 +173,7 @@ class PlotViewController: UIViewController {
             for dataEntry in entries {
                 dataEntry.y *= factor
             }
-        case .YesNo:
+        case .yesNo:
             title = ""
         }
         

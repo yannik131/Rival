@@ -12,26 +12,14 @@ class Timer {
     
     //MARK: - Properties
     
-    private static var instance: Timer?
-    
     private var startStamp: DispatchTime?
     private var elapsedTime = 0
     
     private(set) public var isRunning: Bool = false
     private(set) public var isPaused: Bool = false
+    public static var nanosecondsMode: Bool = false
     
     //MARK: - Public methods
-    
-    private init() {
-        
-    }
-    
-    public static func getInstance() -> Timer {
-        if Timer.instance == nil {
-            Timer.instance = Timer()
-        }
-        return Timer.instance!
-    }
     
     public func start() {
         self.startStamp = DispatchTime.now()
@@ -71,7 +59,23 @@ class Timer {
     //MARK: - Private Methods
     
     private func diff(start: DispatchTime, end: DispatchTime) -> Int {
-        let dt = Double(end.uptimeNanoseconds - start.uptimeNanoseconds)/1000000000.0
-        return Int(dt.rounded())
+        let dt = Double(end.uptimeNanoseconds - start.uptimeNanoseconds)
+        if Timer.nanosecondsMode {
+            return Int(dt)
+        }
+        return Int((dt/1000000000.0).rounded())
+    }
+}
+
+class TimerStore {
+    private static var timers: [UUID:Timer] = [:]
+    private init() {}
+    static subscript(id: UUID) -> Timer {
+        get {
+            if TimerStore.timers[id] == nil {
+                TimerStore.timers[id] = Timer()
+            }
+            return TimerStore.timers[id]!
+        }
     }
 }

@@ -21,16 +21,16 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     @IBOutlet weak var saveButton: UIBarButtonItem!
     @IBOutlet weak var navigationBar: UINavigationItem!
     
-    var activity: Activity?
     var selectedMeasurementMethod = Activity.MeasurementMethod.allCases[0]
     var selectedAttachmentType = Activity.AttachmentType.allCases[0]
     let numberOfSettingsCells = 6
+    let filesystem = Filesystem.shared
+    var completionCallback: (() -> Void)!
     
     //MARK: - Initialization
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         self.measurementTypePicker.delegate = self
         self.measurementTypePicker.dataSource = self
         self.attachmentTypePicker.delegate = self
@@ -62,13 +62,13 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         if pickerView == self.measurementTypePicker {
             switch(Activity.MeasurementMethod.allCases[row]) {
-            case .DoubleWithUnit:
+            case .doubleWithUnit:
                 return "Kommazahl"
-            case .IntWithoutUnit:
+            case .intWithoutUnit:
                 return "Anzahl"
-            case .Time:
+            case .time:
                 return "Zeitangabe"
-            case .YesNo:
+            case .yesNo:
                 return "Ja/Nein"
             }
         }
@@ -118,6 +118,18 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     
     //MARK: - Actions
     
+    @IBAction func saveButtonTapped(_ sender: UIBarButtonItem) {
+        do {
+            try filesystem.createActivity(name: nameTextField.text!, measurementMethod: selectedMeasurementMethod, unit: unitTextField.text!, attachmentType: selectedAttachmentType)
+            completionCallback()
+            dismiss(animated: true, completion: nil)
+        }
+        catch {
+            presentErrorAlert(presentingViewController: self, error: error)
+        }
+    }
+    
+    
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
@@ -134,20 +146,15 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
-        if let tappedButton = sender as? UIBarButtonItem, tappedButton == self.saveButton  {
-            self.activity = Activity(name: self.nameTextField.text!, measurementMethod: self.selectedMeasurementMethod, unit: self.unitTextField.text, attachmentType: self.selectedAttachmentType)
-        }
-        else if let destinationViewController = segue.destination as? FolderTableViewController {
-            destinationViewController.folder = Filesystem.Folder(name: self.nameTextField.text!)
-            destinationViewController.folder!.pathComponents = Filesystem.getInstance().currentFolder.pathComponents + [nameTextField.text!]
-        }
-        else {
-            fatalError()
+        if segue.identifier == "ConfigureFolder" {
+         let destinationViewController = segue.destination as! FolderTableViewController
+            destinationViewController.folderToCreate = Folder(nameTextField.text!, parent: filesystem.current)
+            destinationViewController.folderCreationCallback = completionCallback
         }
     }
     
     override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
-        if identifier == "configureFolder" && !self.folderSwitch.isOn || self.nameTextField.text!.isEmpty {
+        if identifier == "ConfigureFolder" && !self.folderSwitch.isOn || self.nameTextField.text!.isEmpty {
             return false
         }
         return true
@@ -171,7 +178,7 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
         
         if enabled {
             let unit = self.unitTextField.text ?? ""
-            enabled = !(unit.isEmpty && self.selectedMeasurementMethod == .DoubleWithUnit)
+            enabled = !(unit.isEmpty && self.selectedMeasurementMethod == .doubleWithUnit)
         }
         
         self.saveButton.isEnabled = enabled
@@ -179,15 +186,15 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     
     private func updateUnitTextfieldState() {
         switch(self.selectedMeasurementMethod) {
-        case .YesNo:
+        case .yesNo:
             fallthrough
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             self.unitTextField.text = ""
             self.unitTextField.isEnabled = false
-        case .Time:
+        case .time:
             self.unitTextField.text = "s"
             self.unitTextField.isEnabled = false
-        case .DoubleWithUnit:
+        case .doubleWithUnit:
             self.unitTextField.text = ""
             self.unitTextField.isEnabled = true
         }

@@ -14,32 +14,45 @@ open class Activity: Codable {
     
     // MARK: - Properties
     
-    var name: String
+    var name: String {
+        didSet {
+            saved = false
+        }
+    }
     let measurementMethod: MeasurementMethod
     let attachmentType: AttachmentType
-    var unit: String?
-    private var dayData = [String:DailyContent]()
-    let id = UUID()
-    static public let fullFormatter = DateFormatter()
-    static public let dayMonthFormatter = DateFormatter()
+    var unit: String
+    public var saved: Bool
+    private var dayData = [String:DailyContent]() {
+        didSet {
+            saved = false
+        }
+    }
+    let id: UUID
     
     //MARK: - Initialization
     
-    init?(name: String, measurementMethod: MeasurementMethod, unit: String? = nil, attachmentType: AttachmentType = .none) {
-        guard !name.isEmpty || !(measurementMethod == .DoubleWithUnit && unit == nil) else {
+    init?(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none, id: UUID? = nil) {
+        guard !name.isEmpty || !(measurementMethod == .doubleWithUnit && unit.isEmpty) else {
             return nil
+        }
+        if let id = id {
+            self.id = id
+        }
+        else {
+            self.id = UUID()
         }
         self.attachmentType = attachmentType
         self.name = name
         self.measurementMethod = measurementMethod
         self.unit = unit
+        saved = false
+        if measurementMethod == .time {
+            //fillWithTimeData()
+        }
     }
     
     //MARK: - Types
-    
-    enum ActivityError: Error {
-        case emptyNameError(String)
-    }
     
     struct DailyContent: Codable {
         var measurement: Double = 0
@@ -50,24 +63,17 @@ open class Activity: Codable {
     }
     
     enum MeasurementMethod: String, CaseIterable, Codable {
-        case YesNo = "YesNo" //Yes, I played piano today.
-        case Time = "Time" //I played guitar for 25 minutes.
-        case DoubleWithUnit = "DoubleWithUnit" //I ran 3.2 kilometers.
-        case IntWithoutUnit = "IntWithoutUnit" //I did 25 pushups.
+        case yesNo //Yes, I played piano today.
+        case time //I played guitar for 25 minutes.
+        case doubleWithUnit //I ran 3.2 kilometers.
+        case intWithoutUnit //I did 25 pushups.
     }
     
     enum AttachmentType: String, CaseIterable, Codable {
-        case none = "none"
-        case photo = "photo"
-        case audio = "audio"
-        case video = "video"
-    }
-    
-    struct PropertyKey {
-        static let name = "name"
-        static let measurementMethod = "measurementMethod"
-        static let unit = "unit"
-        static let dayData = "dayData"
+        case none
+        case photo
+        case audio
+        case video
     }
     
     //MARK: - Public Methods
@@ -93,18 +99,18 @@ open class Activity: Codable {
         let measurement = self[date].measurement
         
         switch(self.measurementMethod) {
-        case .YesNo:
+        case .yesNo:
             if measurement == 0 {
                 return "Nein"
             }
             else {
                 return "Ja"
             }
-        case .DoubleWithUnit:
-            return "\(measurement) \(self.unit!)"
-        case .Time:
+        case .doubleWithUnit:
+            return "\(measurement) \(self.unit)"
+        case .time:
             return Date.timeString(Int(measurement))
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             return "\(Int(measurement))"
         }
     }
@@ -162,5 +168,6 @@ open class Activity: Codable {
             self[date].measurement = times[i]
             date.addDays(days: -1)
         }
+        saved = false
     }
 }

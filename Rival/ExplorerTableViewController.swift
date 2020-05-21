@@ -18,15 +18,14 @@ class ExplorerTableViewController: UITableViewController {
     @IBOutlet weak var pathNavigationbar: UINavigationItem!
     @IBOutlet weak var addButton: UIBarButtonItem!
     
-    var selectedCellRow: Int?
-    
-    let filesystem = Filesystem.getInstance()
+    let filesystem = Filesystem.shared
     let minimumCellNumber = 6
+    var closeButton: UIBarButtonItem!
     
     var chosenDate = Date() {
         didSet {
             self.setDateButtonDate()
-            self.refreshAllRows()
+            tableView.reloadData()
         }
     }
     
@@ -34,34 +33,18 @@ class ExplorerTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let formatter = Activity.fullFormatter
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateStyle = .short
-        formatter.timeStyle = .none
-        formatter.setLocalizedDateFormatFromTemplate("ddMMyyyy")
         self.setDateButtonDate()
         self.loadSampleData()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
-        leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
-        let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
-        rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
-        let back = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.closeCurrentFolder))
-        self.pathNavigationbar.leftBarButtonItem = back
+        self.setUpDateArrows()
+        //This is necessary if the segue animations look weird
         self.navigationController!.view.backgroundColor = UIColor.white
-        //self.dateButton.tintColor = UIColor.black
     }
     
     //MARK: - Actions
     
     @IBAction func dateButtonTouchUpOutside(_ sender: UIButton) {
         self.chosenDate = Date()
-        self.refreshAllRows()
+        tableView.reloadData()
     }
     
     @objc func previousDateButtonTapped(_ sender: UIButton) {
@@ -72,19 +55,6 @@ class ExplorerTableViewController: UITableViewController {
         self.chosenDate.addDays(days: 1)
     }
     
-    @IBAction func unwindToActivitiesList(sender: UIStoryboardSegue) {
-        if let sourceViewController = sender.source as? AddNewActivityTableViewController {
-            if let activity = sourceViewController.activity {
-                self.addActivity(activity: activity)
-            }
-        }
-        else if let sourceViewController = sender.source as? FolderTableViewController {
-            print("Unwinding to explorer with folder \(sourceViewController.folder!.name)")
-            print("Content: \(sourceViewController.folder!.list())")
-            self.addFolder(folder: sourceViewController.folder!)
-        }
-    }
-    
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -92,60 +62,48 @@ class ExplorerTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let total = self.filesystem.currentFolder.count
+        let total = filesystem.count
         if total > self.minimumCellNumber {
             return total
         }
         return self.minimumCellNumber
     }
     
-    private func getSelectedActivityIndex(for indexPath: IndexPath) -> Int? {
-        let folderCount = self.filesystem.currentFolder.folders.count
+    private func getSelectedActivity(for indexPath: IndexPath) -> Activity? {
+        let folderCount = filesystem.current.folders.count
+        let activityCount = filesystem.current.activities.count
         if folderCount == 0 || indexPath.row+1 > folderCount {
             let activityIndex = indexPath.row - folderCount
-            guard activityIndex >= 0 && activityIndex < self.filesystem.currentFolder.activities.count else {
+            guard activityIndex >= 0 && activityIndex < activityCount else {
                 return nil
             }
-            return activityIndex
+            return filesystem.current.orderedActivities[activityIndex]
         }
         return nil
     }
     
-    private func getSelectedFolderIndex(for indexPath: IndexPath) -> Int? {
-        if indexPath.row < self.filesystem.currentFolder.folders.count {
-            return indexPath.row
+    private func getSelectedFolder(for indexPath: IndexPath) -> Folder? {
+        if indexPath.row < filesystem.current.folders.count {
+            return filesystem.current.orderedFolders[indexPath.row]
         }
         return nil
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if let activityIndex = self.getSelectedActivityIndex(for: indexPath) {
+        if let activity = getSelectedActivity(for: indexPath) {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "activityCell", for: indexPath) as? ActivityTableViewCell else {
                 fatalError()
             }
-            let selectedActivity = self.filesystem.currentFolder.activities[activityIndex]
-            cell.activityNameLabel.text = selectedActivity.name
-            cell.practiceAmountLabel.text = selectedActivity.getPracticeAmountString(date: self.chosenDate)
-            cell.activity = selectedActivity
-            switch(cell.activity.measurementMethod) {
-            case .Time:
-                cell.activityImageView.image = UIImage(systemName: "clock")
-            case .YesNo:
-                cell.activityImageView.image = UIImage(systemName: "checkmark.circle")
-            case .IntWithoutUnit:
-                cell.activityImageView.image = UIImage(systemName: "number.circle")
-            case .DoubleWithUnit:
-                cell.activityImageView.image = UIImage(systemName: "u.circle")
-            }
+            cell.activity = activity
+            cell.setDisplayedDate(date: chosenDate)
             return cell
         }
-        else if let folderIndex = self.getSelectedFolderIndex(for: indexPath) {
+        else if let folder = getSelectedFolder(for: indexPath) {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "folderCell", for: indexPath) as? FolderTableViewCell else {
                 fatalError()
             }
-            let selectedFolder = self.filesystem.currentFolder.folders[folderIndex]
-            cell.folderName.text = selectedFolder.name
-            cell.folderImageView.image = UIImage(systemName: "folder")
+            cell.folder = folder
+            //TODO: Last modified?
             return cell
         }
         else if let cell = tableView.dequeueReusableCell(withIdentifier: "folderCell", for: indexPath) as? FolderTableViewCell {
@@ -159,56 +117,60 @@ class ExplorerTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if let folderIndex = self.getSelectedFolderIndex(for: indexPath) {
+        if let folder = getSelectedFolder(for: indexPath) {
             self.adjustRowNumbersAfterAction {
-                self.filesystem.openFolderInCurrentFolder(folder: self.filesystem.currentFolder.folders[folderIndex])
+                filesystem.open(folder.name)
             }
         }
     }
     
     @objc private func closeCurrentFolder() {
         self.adjustRowNumbersAfterAction {
-            self.filesystem.closeCurrentFolder()
+            filesystem.close()
         }
     }
     
     override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
         if tableView.isEditing {
-            if indexPath.row < self.filesystem.currentFolder.count {
+            if indexPath.row < filesystem.count {
                 return .delete
             }
         }
         return .none
     }
 
-    // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            if let activityIndex = self.getSelectedActivityIndex(for: indexPath) {
+            if let activity = self.getSelectedActivity(for: indexPath) {
                 self.adjustRowNumbersAfterAction {
-                    self.filesystem.currentFolder.activities.remove(at: activityIndex)
+                    filesystem.deleteActivity(activity.name)
                 }
             }
-            if let folderIndex = self.getSelectedFolderIndex(for: indexPath) {
+            else if let folder = self.getSelectedFolder(for: indexPath) {
                 self.adjustRowNumbersAfterAction {
-                    self.filesystem.removeFolderInCurrentFolder(at: folderIndex)
+                    do {
+                        try filesystem.deleteFolder(folder.name)
+                    }
+                    catch {
+                        presentErrorAlert(presentingViewController: self, error: error)
+                    }
                 }
             }
+            updatePath()
         }
     }
     
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
         super.prepare(for: segue, sender: sender)
         
         switch(segue.identifier ?? "") {
-        case "addActivity":
-            break
-        case "showDetail":
+        case "AddActivity":
+            if let controller = (segue.destination as! UINavigationController).topViewController as? AddNewActivityTableViewController {
+                controller.completionCallback = tableView.reloadData
+            }
+        case "ShowDetail":
             guard let destinationViewController = segue.destination as? ActivityDetailTableViewController else {
                 fatalError("showDetail: Wrong connection.")
             }
@@ -221,14 +183,14 @@ class ExplorerTableViewController: UITableViewController {
                 fatalError("Unknown cell selected.")
             }
             
-            destinationViewController.activity = self.filesystem.currentFolder.activities[self.getSelectedActivityIndex(for: indexPath)!]
+            let activity = getSelectedActivity(for: indexPath)!
+            destinationViewController.activity = activity
             destinationViewController.chosenDate = self.chosenDate
             destinationViewController.selectDateCallback = {(date: Date) in self.chosenDate = date}
-            self.selectedCellRow = indexPath.row
-        case "calendarPopup":
+        case "DateSelection":
             let navigationController = segue.destination as? UINavigationController
             let destinationViewController = navigationController!.topViewController as! CalendarViewController
-            destinationViewController.selectDateCallback = {(date: Date) in self.chosenDate = date}
+            destinationViewController.singleSelectionCallback = {(date: Date) in self.chosenDate = date}
             destinationViewController.firstDate = self.chosenDate
         default:
             fatalError("Unknown segue triggered.")
@@ -236,23 +198,42 @@ class ExplorerTableViewController: UITableViewController {
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        self.refreshAllRows()
+        tableView.reloadData()
         self.updatePath()
     }
     
     //MARK: - Private Methods
     
+    //MARK: UI Stuff
+    
+    private func setUpDateArrows() {
+        let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
+        leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
+        let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
+        rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
+        closeButton = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.closeCurrentFolder))
+        self.pathNavigationbar.leftBarButtonItem = closeButton
+    }
+    
     private func updatePath() {
-        self.pathNavigationbar.title = self.filesystem.currentPath
+        pathNavigationbar.title = filesystem.current.url.path
+        if filesystem.current.parent == nil {
+            closeButton.isEnabled = false
+        }
+        else {
+            closeButton.isEnabled = true
+        }
     }
     
     private func adjustRowNumbersAfterAction(action: () -> ()) {
-        let previousRowCount = self.filesystem.currentFolder.count
+        let previousRowCount = filesystem.count
         action()
-        self.updatePath()
-        let currentRowCount = self.filesystem.currentFolder.count
-        if previousRowCount < self.minimumCellNumber || currentRowCount < self.minimumCellNumber {
-            self.refreshAllRows()
+        let currentRowCount = filesystem.count
+        if previousRowCount < minimumCellNumber || currentRowCount < minimumCellNumber {
+            tableView.reloadData()
+            updatePath()
             return
         }
         var diff = currentRowCount - previousRowCount
@@ -269,7 +250,8 @@ class ExplorerTableViewController: UITableViewController {
                 self.tableView.insertRows(at: [IndexPath(row: previousRowCount-1+i, section: 0)], with: .none)
             }
         }
-        self.refreshAllRows()
+        tableView.reloadData()
+        updatePath()
     }
 
     private func setDateButtonDate() {
@@ -282,36 +264,19 @@ class ExplorerTableViewController: UITableViewController {
         }
     }
     
-    private func addActivity(activity: Activity) {
-        self.adjustRowNumbersAfterAction {
-            self.filesystem.addActivityToFolder(activity: activity, folder: self.filesystem.currentFolder)
-        }
-    }
-    
-    private func addFolder(folder: Filesystem.Folder) {
-        self.adjustRowNumbersAfterAction {
-            self.filesystem.addFolderToFolder(destination: self.filesystem.currentFolder, folder: folder)
-        }
-    }
+    //MARK: Model Stuff
     
     private func loadSampleData() {
-        if self.filesystem.getAllActivities().isEmpty {
-            let activity = Activity(name: "Gitarre üben", measurementMethod: .Time)!
-            activity.fillWithTimeData()
-            self.addActivity(activity: activity)
-            self.addActivity(activity: Activity(name: "Klavier spielen", measurementMethod: .YesNo)!)
-            self.addActivity(activity: Activity(name: "Laufen", measurementMethod: .DoubleWithUnit, unit: "km")!)
-            self.addActivity(activity: Activity(name: "Liegestütze", measurementMethod: .IntWithoutUnit)!)
+        do {
+            if filesystem.count == 0 {
+                try filesystem.createActivity(name: "Gitarre üben", measurementMethod: .time)
+                try filesystem.createActivity(name: "Klavier spielen", measurementMethod: .yesNo)
+                try filesystem.createActivity(name: "Laufen", measurementMethod: .doubleWithUnit, unit: "km")
+                try filesystem.createActivity(name: "Liegestütze", measurementMethod: .intWithoutUnit)
+            }
         }
-    }
-    
-    func refreshAllRows() {
-        var total = self.filesystem.currentFolder.count
-        if total < self.minimumCellNumber {
-            total = self.minimumCellNumber
-        }
-        for index in 0..<total{
-            self.tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .none)
+        catch {
+            presentErrorAlert(presentingViewController: self, error: error)
         }
     }
 }

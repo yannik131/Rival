@@ -16,10 +16,10 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     @IBOutlet weak var unitTextField: UITextField!
     @IBOutlet weak var commentTextView: UITextView!
     @IBOutlet weak var quantityView: QuantityView!
-    @IBOutlet weak var startButton: UIButton!
-    @IBOutlet weak var deleteButton: UIButton!
-    @IBOutlet weak var stopButton: UIButton!
     @IBOutlet weak var pathNavigationItem: UINavigationItem!
+    @IBOutlet weak var leftButton: UIButton!
+    @IBOutlet weak var middleButton: UIButton!
+    @IBOutlet weak var rightButton: UIButton!
     @IBOutlet weak var dateButton: UIButton!
     @IBOutlet weak var addButton: UIBarButtonItem!
     @IBOutlet weak var addAttachmentButton: UIButton!
@@ -32,44 +32,17 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             if let view = self.quantityView {
                 view.chosenDate = self.chosenDate
                 self.setDateButtonDate()
-                self.handleViewStates()
+                self.updateTimerButtonStates()
                 self.commentTextView.text = self.activity[self.chosenDate].comment
                 self.selectDateCallback(self.chosenDate)
             }
         }
     }
     var backButton: UIBarButtonItem!
+    let filesystem = Filesystem.shared
+    var timer: Timer!
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        self.setActivityAndDate()
-        self.commentTextView.delegate = self
-        self.activityNameTextField.delegate = self
-        self.unitTextField.delegate = self
-        if let unit = self.activity.unit {
-            self.unitTextField.text = unit
-        }
-        else {
-            self.unitTextField.isEnabled = false
-            if self.activity.measurementMethod == .Time {
-                self.unitTextField.text = "s"
-            }
-            self.unitTextField.backgroundColor = UIColor.systemGray6
-        }
-        self.activityNameTextField.text = self.activity.name
-        self.commentTextView.text = self.activity[self.chosenDate].comment
-        self.commentTextView.layer.borderWidth = 1
-        self.commentTextView.layer.cornerRadius = 10
-        
-        self.moveButton.createBorder()
-        self.startButton.createBorder()
-        self.stopButton.createBorder()
-        self.deleteButton.createBorder()
-        self.startButton.setTitle("Läuft..", for: [.selected, .highlighted])
-        
-        self.handleViewStates()
-        self.updatePath()
+    func createDateButtons() {
         self.navigationItem.hidesBackButton = true
         self.pathNavigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "arrow.left"), style: .plain, target: self, action: #selector(self.back(_:)))
         let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
@@ -79,12 +52,31 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
         rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
-        
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        if activity.measurementMethod == .time {
+            timer = TimerStore[activity.id]
+        }
+        self.setActivityAndDate()
+        self.commentTextView.delegate = self
+        self.activityNameTextField.delegate = self
+        self.unitTextField.delegate = self
+        self.unitTextField.text = activity.unit
+        if activity.measurementMethod != .doubleWithUnit {
+            self.unitTextField.isEnabled = false
+            self.unitTextField.backgroundColor = UIColor.systemGray6
+        }
+        self.activityNameTextField.text = self.activity.name
+        self.commentTextView.text = self.activity[self.chosenDate].comment
+        self.commentTextView.layer.borderWidth = 1
+        self.commentTextView.layer.cornerRadius = 10
+        setUpButtons()
+        self.moveButton.createBorder()
+        self.updateTimerButtonStates()
+        self.updatePath()
+        createDateButtons()
     }
     
     //MARK: - Private Methods
@@ -113,38 +105,77 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.chosenDate.addDays(days: 1)
     }
     
-    func handleViewStates() {
-        if self.activity.measurementMethod != .Time || !self.chosenDate.isToday() {
-            self.startButton.isEnabled = false
-            self.stopButton.isEnabled = false
-            self.deleteButton.isEnabled = false
+    func setUpButtons() {
+        leftButton.createBorder()
+        middleButton.createBorder()
+        rightButton.createBorder()
+        if activity.measurementMethod == .time {
+            leftButton.setTitle("Läuft..", for: .selected)
+            leftButton.addTarget(self, action: #selector(startTimer(_:)), for: .touchUpInside)
+            middleButton.addTarget(self, action: #selector(stopTimer(_:)), for: .touchUpInside)
+            rightButton.addTarget(self, action: #selector(deleteTimer(_:)), for: .touchUpInside)
         }
-        else {
-            self.startButton.isEnabled = true
-            self.stopButton.isEnabled = true
-            self.deleteButton.isEnabled = true
-            if Timer.getInstance().isRunning {
-                self.setStartButtonRunning()
-            }
-            else if Timer.getInstance().isPaused {
-                self.setStartButtonPaused()
+        else if activity.measurementMethod == .intWithoutUnit {
+            leftButton.setTitle("+", for: .normal)
+            middleButton.setTitle("-", for: .normal)
+            leftButton.addTarget(self, action: #selector(addOne), for: .touchUpInside)
+            middleButton.addTarget(self, action: #selector(substractOne), for: .touchUpInside)
+            rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
+        }
+    }
+    
+    @objc func addOne() {
+        activity[chosenDate].measurement += 1
+        quantityView.update(for: chosenDate)
+    }
+    
+    @objc func substractOne() {
+        let measurement = activity[chosenDate].measurement
+        if measurement > 0 {
+            activity[chosenDate].measurement -= 1
+        }
+        quantityView.update(for: chosenDate)
+    }
+    
+    @objc func reset() {
+        activity[chosenDate].measurement = 0
+        quantityView.update(for: chosenDate)
+    }
+    
+    func updateTimerButtonStates() {
+        if !self.chosenDate.isToday() {
+            self.leftButton.isEnabled = false
+            self.middleButton.isEnabled = false
+            self.rightButton.isEnabled = false
+        }
+        else if activity.measurementMethod == .time || activity.measurementMethod == .intWithoutUnit {
+            self.leftButton.isEnabled = true
+            self.middleButton.isEnabled = true
+            self.rightButton.isEnabled = true
+            if activity.measurementMethod == .time {
+                if timer.isRunning {
+                    self.setStartButtonRunning()
+                }
+                else if timer.isPaused {
+                    self.setStartButtonPaused()
+                }
             }
         }
     }
     
     func setStartButtonPaused() {
-        self.startButton.isSelected = true
-        self.startButton.backgroundColor = UIColor.lightGray
+        self.leftButton.isSelected = true
+        self.leftButton.backgroundColor = UIColor.lightGray
     }
     
     func setStartButtonRunning() {
-        self.startButton.isSelected = true
-        self.startButton.backgroundColor = UIColor.clear
+        self.leftButton.isSelected = true
+        self.leftButton.backgroundColor = UIColor.clear
     }
     
     func setStartButtonWaiting() {
-        self.startButton.isSelected = false
-        self.startButton.backgroundColor = UIColor.clear
+        self.leftButton.isSelected = false
+        self.leftButton.backgroundColor = UIColor.clear
     }
     
     func setActivityAndDate() {
@@ -163,26 +194,26 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         
     }
     
-    @IBAction func startButtonTapped(_ sender: UIButton) {
-        if !Timer.getInstance().isRunning {
-            Timer.getInstance().start()
+    @objc func startTimer(_ sender: UIButton) {
+        if !timer.isRunning {
+            timer.start()
             self.setStartButtonRunning()
         }
         else {
-            Timer.getInstance().pause()
+            timer.pause()
             self.setStartButtonPaused()
         }
     }
     
-    @IBAction func stopButtonTapped(_ sender: UIButton) {
-        if let seconds = Timer.getInstance().stop() {
+    @objc func stopTimer(_ sender: UIButton) {
+        if let seconds = timer.stop() {
             self.setStartButtonWaiting()
             self.quantityView.setTimePickerSeconds(seconds, animated: true)
         }
     }
     
-    @IBAction func deleteButtonTapped(_ sender: UIButton) {
-        Timer.getInstance().clear()
+    @objc func deleteTimer(_ sender: UIButton) {
+        timer.clear()
         self.setStartButtonWaiting()
         self.quantityView.setTimePickerSeconds(0, animated: true)
         self.activity[self.chosenDate].measurement = 0
@@ -191,23 +222,18 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     //MARK: - Navigation
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-        super.prepare(for: segue, sender: sender)
-        
+        //super.prepare(for: segue, sender: sender)
+        let navigationController = segue.destination as! UINavigationController
         switch(segue.identifier ?? "") {
-        case "calendarPopup2":
-            let navigationController = segue.destination as? UINavigationController
-            let destinationViewController = navigationController!.topViewController as! CalendarViewController
-            destinationViewController.selectDateCallback = {(date: Date) in self.chosenDate = date}
+        case "SelectDate":
+            let destinationViewController = navigationController.topViewController as! CalendarViewController
+            destinationViewController.singleSelectionCallback = {(date: Date) in self.chosenDate = date}
             destinationViewController.firstDate = self.chosenDate
-        case "moveActivity":
-            let navigationController = segue.destination as! UINavigationController
+        case "MoveActivity":
             let destinationViewController = navigationController.topViewController as! FolderTableViewController
             destinationViewController.mode = .moveActivity
-            destinationViewController.moveCallback = {(folder: Filesystem.Folder) in
-                Filesystem.getInstance().addActivityToFolder(activity: self.activity, folder: folder)
-                Filesystem.getInstance().openFolder(pathComponents: folder.pathComponents)
+            destinationViewController.activityToMove = activity
+            destinationViewController.moveCallback = {
                 self.updatePath()
             }
         default:
@@ -228,40 +254,42 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     //MARK: - UITextFieldDelegate
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        if textField.text!.isEmpty {
-            return false
-        }
         textField.resignFirstResponder()
         return true
     }
     
-    func textFieldDidChangeSelection(_ textField: UITextField) {
+    func textFieldDidEndEditing(_ textField: UITextField) {
         if textField == self.activityNameTextField {
-            self.activity!.name = textField.text!
-            self.updatePath()
+            do {
+                try filesystem.renameActivity(activity, name: textField.text!)
+                updatePath()
+            }
+            catch {
+                presentErrorAlert(presentingViewController: self, error: error)
+                textField.text = activity.name
+            }
         }
         else if textField == self.unitTextField {
             self.activity!.unit = textField.text!
             self.quantityView.update(for: self.chosenDate)
         }
     }
+    
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
         return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
         return 6
     }
     
     //MARK: - Private Methods
     
     private func updatePath() {
-        self.pathNavigationItem.title = Filesystem.getInstance().currentPath + self.activity.name
+        self.pathNavigationItem.title = filesystem.current.url.appendingPathComponent(activity.name).path
     }
 }
 

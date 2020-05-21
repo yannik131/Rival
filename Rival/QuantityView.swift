@@ -50,7 +50,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     
     //MARK: - UIPickerViewDelegate
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        if self.activity.measurementMethod == .IntWithoutUnit {
+        if self.activity.measurementMethod == .intWithoutUnit {
             return 1
         }
         return 3
@@ -58,9 +58,9 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         switch(self.activity.measurementMethod) {
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             return self.intRange.count
-        case .Time:
+        case .time:
             return self.timeRange[component].count
         default:
             fatalError()
@@ -69,9 +69,9 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         switch(self.activity.measurementMethod) {
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             return String(describing: self.intRange[row])
-        case .Time:
+        case .time:
             return self.timeRange[component][row]
         default:
             fatalError()
@@ -102,7 +102,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         doubleTextField.widthAnchor.constraint(equalToConstant: 100).isActive = true
         doubleTextField.delegate = self
         doubleTextField.borderStyle = .roundedRect
-        if self.activity.measurementMethod == .IntWithoutUnit {
+        if self.activity.measurementMethod == .intWithoutUnit {
             doubleTextField.keyboardType = .numberPad
         }
         else {
@@ -134,15 +134,15 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         
         switch(self.activity.measurementMethod) {
             
-        case .YesNo:
+        case .yesNo:
             self.createYesNoSwitch()
             
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             fallthrough
-        case .DoubleWithUnit:
+        case .doubleWithUnit:
             self.createDoubleTextField()
             
-        case .Time:
+        case .time:
             self.createPicker()
         }
         self.update(for: self.chosenDate)
@@ -163,7 +163,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
             view = picker as UIView
         }
         if let view = view {
-            view.isUserInteractionEnabled = self.chosenDate.isToday()
+            view.isUserInteractionEnabled = true
             if self.chosenDate.isToday() {
                 view.backgroundColor = UIColor.clear
             }
@@ -241,11 +241,11 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         var amount: Double = 0
         
         switch(measurementMethod) {
-        case .YesNo:
+        case .yesNo:
             if self.yesNoSwitch!.isOn {
                 amount = 1
             }
-        case .Time:
+        case .time:
             guard let picker = self.picker else {
                 return
             }
@@ -253,9 +253,9 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
             let minutes = picker.selectedRow(inComponent: 1)
             let seconds = picker.selectedRow(inComponent: 2)
             amount = Double(hours * 3600 + minutes * 60 + seconds)
-        case .IntWithoutUnit:
+        case .intWithoutUnit:
             fallthrough
-        case .DoubleWithUnit:
+        case .doubleWithUnit:
             if let userInput = self.doubleTextField!.text {
                 if let input = Double(userInput.replacingOccurrences(of: ",", with: ".")) {
                     amount = input

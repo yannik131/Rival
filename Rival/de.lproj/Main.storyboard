@@ -71,7 +71,7 @@
                                     <outlet property="activityImageView" destination="8dN-IK-nnW" id="fEc-v4-YG0"/>
                                     <outlet property="activityNameLabel" destination="ral-DJ-gpX" id="dRg-Oe-erE"/>
                                     <outlet property="practiceAmountLabel" destination="Gaa-S9-h1e" id="eGo-gE-B7a"/>
-                                    <segue destination="ebM-SS-ISt" kind="show" identifier="showDetail" animates="NO" id="uzN-cb-bkK"/>
+                                    <segue destination="ebM-SS-ISt" kind="show" identifier="ShowDetail" animates="NO" id="uzN-cb-bkK"/>
                                 </connections>
                             </tableViewCell>
                             <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="folderCell" id="Fnd-Mo-17W" customClass="FolderTableViewCell" customModule="Rival" customModuleProvider="target">
@@ -124,12 +124,12 @@
                             <state key="normal" title="Button"/>
                             <connections>
                                 <action selector="dateButtonTouchUpOutside:" destination="Oh7-lD-27W" eventType="touchUpOutside" id="CwZ-rm-eel"/>
-                                <segue destination="G2C-ZK-zhf" kind="presentation" identifier="calendarPopup" id="U2U-ss-vcn"/>
+                                <segue destination="G2C-ZK-zhf" kind="presentation" identifier="DateSelection" id="U2U-ss-vcn"/>
                             </connections>
                         </button>
                         <barButtonItem key="rightBarButtonItem" systemItem="add" id="vp0-ai-f8p">
                             <connections>
-                                <segue destination="FOh-XM-g1l" kind="presentation" identifier="addActivity" id="SZF-5f-TV9"/>
+                                <segue destination="FOh-XM-g1l" kind="presentation" identifier="AddActivity" id="SZF-5f-TV9"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -249,9 +249,6 @@
                                                     <state key="highlighted">
                                                         <color key="titleColor" systemColor="systemGray4Color" red="0.81960784310000001" green="0.81960784310000001" blue="0.83921568629999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                                     </state>
-                                                    <connections>
-                                                        <action selector="startButtonTapped:" destination="ebM-SS-ISt" eventType="touchUpInside" id="ThH-Eu-cON"/>
-                                                    </connections>
                                                 </button>
                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="DXV-HT-FHY">
                                                     <rect key="frame" x="253" y="29" width="99" height="34"/>
@@ -260,9 +257,6 @@
                                                     </constraints>
                                                     <fontDescription key="fontDescription" type="system" pointSize="18"/>
                                                     <state key="normal" title="Löschen"/>
-                                                    <connections>
-                                                        <action selector="deleteButtonTapped:" destination="ebM-SS-ISt" eventType="touchUpInside" id="V5H-o4-I2z"/>
-                                                    </connections>
                                                 </button>
                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="H7t-GA-eBW">
                                                     <rect key="frame" x="140" y="29" width="77" height="34"/>
@@ -276,9 +270,6 @@
                                                     <state key="disabled">
                                                         <color key="titleColor" systemColor="systemGray4Color" red="0.81960784310000001" green="0.81960784310000001" blue="0.83921568629999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                                     </state>
-                                                    <connections>
-                                                        <action selector="stopButtonTapped:" destination="ebM-SS-ISt" eventType="touchUpInside" id="075-lg-kRF"/>
-                                                    </connections>
                                                 </button>
                                             </subviews>
                                             <constraints>
@@ -385,7 +376,7 @@
                                                     <fontDescription key="fontDescription" type="boldSystem" pointSize="18"/>
                                                     <state key="normal" title="Bewegen..."/>
                                                     <connections>
-                                                        <segue destination="XjI-QE-kra" kind="presentation" identifier="moveActivity" id="5Xy-EE-SHO"/>
+                                                        <segue destination="XjI-QE-kra" kind="presentation" identifier="MoveActivity" id="5Xy-EE-SHO"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
@@ -411,7 +402,7 @@
                             <state key="normal" title="Button"/>
                             <connections>
                                 <action selector="dateButtonTouchUpOutside:" destination="ebM-SS-ISt" eventType="touchUpOutside" id="nYf-j1-Pio"/>
-                                <segue destination="G2C-ZK-zhf" kind="presentation" identifier="calendarPopup2" id="NWJ-3K-0CH"/>
+                                <segue destination="G2C-ZK-zhf" kind="presentation" identifier="DateSelection" id="NWJ-3K-0CH"/>
                             </connections>
                         </button>
                         <barButtonItem key="rightBarButtonItem" enabled="NO" systemItem="add" id="LsK-Vv-Fe0"/>
@@ -422,12 +413,12 @@
                         <outlet property="addButton" destination="LsK-Vv-Fe0" id="2xn-ye-zhj"/>
                         <outlet property="commentTextView" destination="YoC-QB-f3T" id="QUL-2u-ewG"/>
                         <outlet property="dateButton" destination="ScI-bA-ITV" id="zq1-PX-8yj"/>
-                        <outlet property="deleteButton" destination="DXV-HT-FHY" id="qSd-gP-TLx"/>
+                        <outlet property="leftButton" destination="ORf-Hn-umf" id="xGy-IN-f4q"/>
+                        <outlet property="middleButton" destination="H7t-GA-eBW" id="jPH-uY-2bd"/>
                         <outlet property="moveButton" destination="SoI-ME-rl2" id="wZb-fQ-Acw"/>
                         <outlet property="pathNavigationItem" destination="t2V-Ds-c0j" id="ZtI-uP-Ixq"/>
                         <outlet property="quantityView" destination="tPF-wO-hXu" id="ISO-L8-2Ed"/>
-                        <outlet property="startButton" destination="ORf-Hn-umf" id="JJx-JE-aOQ"/>
-                        <outlet property="stopButton" destination="H7t-GA-eBW" id="fug-0l-LhW"/>
+                        <outlet property="rightButton" destination="DXV-HT-FHY" id="f9q-ii-vkN"/>
                         <outlet property="unitTextField" destination="xTv-gV-4P0" id="2Ku-jW-1Lg"/>
                     </connections>
                 </tableViewController>
@@ -584,7 +575,7 @@
                                             </constraints>
                                         </tableViewCellContentView>
                                         <connections>
-                                            <segue destination="s7t-Hj-gNi" kind="show" identifier="configureFolder" id="xxx-pC-p99"/>
+                                            <segue destination="s7t-Hj-gNi" kind="show" identifier="ConfigureFolder" id="xxx-pC-p99"/>
                                         </connections>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" reuseIdentifier="settingsCell" rowHeight="90" id="dKJ-NF-ccK">
@@ -631,7 +622,7 @@
                         </barButtonItem>
                         <barButtonItem key="rightBarButtonItem" systemItem="save" id="kz6-zo-yAl">
                             <connections>
-                                <segue destination="QMg-rE-2T9" kind="unwind" unwindAction="unwindToActivitiesListWithSender:" id="4Je-Rq-53F"/>
+                                <action selector="saveButtonTapped:" destination="dmz-gl-D1e" id="GrO-QQ-ta0"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -646,7 +637,6 @@
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="W2X-Z4-F2C" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-                <exit id="QMg-rE-2T9" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="2786.9565217391305" y="-110.05434782608697"/>
         </scene>
@@ -755,13 +745,12 @@
                     <navigationItem key="navigationItem" id="qaC-7n-Qfd">
                         <barButtonItem key="rightBarButtonItem" systemItem="save" id="YHg-p1-U23">
                             <connections>
-                                <segue destination="mIl-OG-QB1" kind="unwind" unwindAction="unwindToActivitiesListWithSender:" id="sGJ-kD-G0g"/>
+                                <action selector="saveButtonTapped:" destination="s7t-Hj-gNi" id="uMm-az-jbr"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="hrX-wy-MQs" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-                <exit id="mIl-OG-QB1" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="3727.5362318840585" y="-110.05434782608697"/>
         </scene>
@@ -1776,7 +1765,7 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="U2U-ss-vcn"/>
+        <segue reference="NWJ-3K-0CH"/>
     </inferredMetricsTieBreakers>
     <resources>
         <image name="arrow.left" catalog="system" width="128" height="98"/>
