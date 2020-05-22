@@ -38,6 +38,11 @@ class ActivityTableViewCell: UITableViewCell {
     func setDisplayedDate(date: Date) {
         activityNameLabel.text = activity.name
         practiceAmountLabel.text = activity.getPracticeAmountString(date: date)
+        if let stopWatch = StopWatchStore[activity.id] {
+            if stopWatch.isRunning && stopWatch.startStamp!.isToday() {
+                practiceAmountLabel.text! += "..."
+            }
+        }
         switch(activity.measurementMethod) {
         case .time:
             activityImageView.image = UIImage(systemName: "clock")

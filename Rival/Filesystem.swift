@@ -96,34 +96,6 @@ public enum FilesystemError: Error {
     case cannotRename(String)
 }
 
-public func presentErrorAlert(presentingViewController: UIViewController, error: Error! = nil, title: String? = nil, message: String? = nil) {
-    if error == nil && message == nil {
-        fatalError()
-    }
-    var title = title ?? "Fehler"
-    var message = message ?? error.localizedDescription
-    if let error = error as? FilesystemError {
-        switch(error) {
-        case .cannotCreate(let msg):
-            title = "Erstellen nicht möglich"
-            message = msg
-        case .cannotDelete(let msg):
-            title = "Löschen nicht möglich"
-            message = msg
-        case .cannotMove(let msg):
-            title = "Verschieben nicht möglich"
-            message = msg
-        case .cannotRename(let msg):
-            title = "Umbennen nicht möglich"
-            message = msg
-        }
-        //TODO: Find out if its possible to get the string from an error enum so that 4x message = msg is not necessary
-    }
-    let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
-    alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
-    presentingViewController.present(alert, animated: true, completion: nil)
-}
-
 class Filesystem {
     
     //MARK: - Properties
@@ -349,6 +321,9 @@ class Filesystem {
         let srcName = srcURL.lastPathComponent
         if destinationFolder.folders.keys.contains(srcName) {
             throw FilesystemError.cannotMove("Es gibt bereits einen Ordner mit dem Namen \"\(srcName)\" in \"\(current.url.path)\".")
+        }
+        else if srcURL.contains(dstURL) {
+            throw FilesystemError.cannotMove("Das Verschieben des Ordners \"\(srcURL.path)\" in seinen Unterordner \"\(dstURL.path)\" würde eine Endlosschleife verursachen.")
         }
         destinationFolder.folders[srcName] = sourceFolder
         sourceFolder.parent = destinationFolder

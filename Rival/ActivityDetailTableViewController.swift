@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ActivityDetailTableViewController: UITableViewController, UITextFieldDelegate, UITextViewDelegate {
+class ActivityDetailTableViewController: UITableViewController, UITextFieldDelegate, UITextViewDelegate, DoneButton {
     
     //MARK: - Properties
     
@@ -32,7 +32,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             if let view = self.quantityView {
                 view.chosenDate = self.chosenDate
                 self.setDateButtonDate()
-                self.updateTimerButtonStates()
+                self.updateButtonStates()
                 self.commentTextView.text = self.activity[self.chosenDate].comment
                 self.selectDateCallback(self.chosenDate)
             }
@@ -40,24 +40,23 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     }
     var backButton: UIBarButtonItem!
     let filesystem = Filesystem.shared
-    var timer: Timer!
-
-    func createDateButtons() {
-        self.navigationItem.hidesBackButton = true
-        self.pathNavigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "arrow.left"), style: .plain, target: self, action: #selector(self.back(_:)))
-        let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
-        leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        self.editButtonItem.isEnabled = false
-        self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
-        let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
-        rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
-    }
+    var stopWatch: StopWatch!
+    var timer: Timer! = nil
+    
+    //MARK: - Initialization
     
     override func viewDidLoad() {
         super.viewDidLoad()
         if activity.measurementMethod == .time {
-            timer = TimerStore[activity.id]
+            stopWatch = StopWatchStore[activity.id]
+            stopWatch.fireAction = {
+                guard Calendar.iso.isDate(Date(), equalTo: self.chosenDate, toGranularity: .day) else {
+                    return
+                }
+                self.stopWatch.update()
+                self.activity[self.chosenDate].measurement = self.stopWatch.elapsedTime
+                self.quantityView.setTimePickerSeconds(Int(self.stopWatch.elapsedTime), animated: true)
+            }
         }
         self.setActivityAndDate()
         self.commentTextView.delegate = self
@@ -72,14 +71,31 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.commentTextView.text = self.activity[self.chosenDate].comment
         self.commentTextView.layer.borderWidth = 1
         self.commentTextView.layer.cornerRadius = 10
+        addDoneButton(parentView: self, to: commentTextView)
         setUpButtons()
         self.moveButton.createBorder()
-        self.updateTimerButtonStates()
+        self.updateButtonStates()
         self.updatePath()
         createDateButtons()
     }
     
     //MARK: - Private Methods
+    
+    private func updatePath() {
+        self.pathNavigationItem.title = filesystem.current.url.appendingPathComponent(activity.name).path
+    }
+    
+    private func createDateButtons() {
+        self.navigationItem.hidesBackButton = true
+        self.pathNavigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "arrow.left"), style: .plain, target: self, action: #selector(self.back(_:)))
+        let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
+        leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        self.editButtonItem.isEnabled = false
+        self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
+        let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
+        rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
+    }
     
     private func setDateButtonDate() {
         self.dateButton.setTitle(self.chosenDate.dateString(), for: .normal)
@@ -91,75 +107,41 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         }
     }
     
-    @objc private func back(_ sender: UIBarButtonItem) {
-        if let owningNavigationController = self.navigationController {
-            owningNavigationController.popViewController(animated: false)
-        }
-    }
-    
-    @objc private func previousDateButtonTapped(_ sender: UIButton) {
-        self.chosenDate.addDays(days: -1)
-    }
-    
-    @objc private func nextDateButtonTapped(_ sender: UIButton) {
-        self.chosenDate.addDays(days: 1)
-    }
-    
-    func setUpButtons() {
+    private func setUpButtons() {
         leftButton.createBorder()
         middleButton.createBorder()
         rightButton.createBorder()
+        rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
         if activity.measurementMethod == .time {
             leftButton.setTitle("Läuft..", for: .selected)
-            leftButton.addTarget(self, action: #selector(startTimer(_:)), for: .touchUpInside)
-            middleButton.addTarget(self, action: #selector(stopTimer(_:)), for: .touchUpInside)
-            rightButton.addTarget(self, action: #selector(deleteTimer(_:)), for: .touchUpInside)
+            leftButton.addTarget(self, action: #selector(startTimer), for: .touchUpInside)
+            middleButton.addTarget(self, action: #selector(stopTimer), for: .touchUpInside)
+            rightButton.addTarget(self, action: #selector(deleteTimer), for: .touchUpInside)
         }
         else if activity.measurementMethod == .intWithoutUnit {
             leftButton.setTitle("+", for: .normal)
             middleButton.setTitle("-", for: .normal)
             leftButton.addTarget(self, action: #selector(addOne), for: .touchUpInside)
             middleButton.addTarget(self, action: #selector(substractOne), for: .touchUpInside)
-            rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
         }
     }
     
-    @objc func addOne() {
-        activity[chosenDate].measurement += 1
-        quantityView.update(for: chosenDate)
-    }
-    
-    @objc func substractOne() {
-        let measurement = activity[chosenDate].measurement
-        if measurement > 0 {
-            activity[chosenDate].measurement -= 1
-        }
-        quantityView.update(for: chosenDate)
-    }
-    
-    @objc func reset() {
-        activity[chosenDate].measurement = 0
-        quantityView.update(for: chosenDate)
-    }
-    
-    func updateTimerButtonStates() {
-        if !self.chosenDate.isToday() {
-            self.leftButton.isEnabled = false
-            self.middleButton.isEnabled = false
-            self.rightButton.isEnabled = false
-        }
-        else if activity.measurementMethod == .time || activity.measurementMethod == .intWithoutUnit {
+    func updateButtonStates() {
+        if activity.measurementMethod == .time || activity.measurementMethod == .intWithoutUnit {
             self.leftButton.isEnabled = true
             self.middleButton.isEnabled = true
-            self.rightButton.isEnabled = true
             if activity.measurementMethod == .time {
-                if timer.isRunning {
+                if stopWatch.isRunning {
                     self.setStartButtonRunning()
                 }
-                else if timer.isPaused {
+                else if stopWatch.isPaused {
                     self.setStartButtonPaused()
                 }
             }
+        }
+        else {
+            leftButton.isEnabled = false
+            middleButton.isEnabled = false
         }
     }
     
@@ -194,29 +176,57 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         
     }
     
-    @objc func startTimer(_ sender: UIButton) {
-        if !timer.isRunning {
-            timer.start()
-            self.setStartButtonRunning()
+    @objc func addOne() {
+        activity[chosenDate].measurement += 1
+        quantityView.update(for: chosenDate)
+    }
+    
+    @objc func substractOne() {
+        let measurement = activity[chosenDate].measurement
+        if measurement > 0 {
+            activity[chosenDate].measurement -= 1
+        }
+        quantityView.update(for: chosenDate)
+    }
+    
+    @objc func reset() {
+        activity[chosenDate].measurement = 0
+        quantityView.update(for: chosenDate)
+    }
+    
+    @objc private func back(_ sender: UIBarButtonItem) {
+        if let owningNavigationController = self.navigationController {
+            owningNavigationController.popViewController(animated: false)
+        }
+    }
+    
+    @objc private func previousDateButtonTapped(_ sender: UIButton) {
+        self.chosenDate.addDays(days: -1)
+    }
+    
+    @objc private func nextDateButtonTapped(_ sender: UIButton) {
+        self.chosenDate.addDays(days: 1)
+    }
+    
+    @objc func startTimer() {
+        if !stopWatch.isRunning {
+            stopWatch.start()
+            setStartButtonRunning()
         }
         else {
-            timer.pause()
-            self.setStartButtonPaused()
+            stopWatch.pause()
+            setStartButtonPaused()
         }
     }
     
-    @objc func stopTimer(_ sender: UIButton) {
-        if let seconds = timer.stop() {
-            self.setStartButtonWaiting()
-            self.quantityView.setTimePickerSeconds(seconds, animated: true)
-        }
+    @objc func stopTimer() {
+        stopWatch.stop()
+        setStartButtonWaiting()
     }
     
-    @objc func deleteTimer(_ sender: UIButton) {
-        timer.clear()
-        self.setStartButtonWaiting()
-        self.quantityView.setTimePickerSeconds(0, animated: true)
-        self.activity[self.chosenDate].measurement = 0
+    @objc func deleteTimer() {
+        stopWatch.clear()
+        setStartButtonWaiting()
     }
     
     //MARK: - Navigation
@@ -225,10 +235,11 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         //super.prepare(for: segue, sender: sender)
         let navigationController = segue.destination as! UINavigationController
         switch(segue.identifier ?? "") {
-        case "SelectDate":
+        case "DateSelection":
             let destinationViewController = navigationController.topViewController as! CalendarViewController
             destinationViewController.singleSelectionCallback = {(date: Date) in self.chosenDate = date}
             destinationViewController.firstDate = self.chosenDate
+            destinationViewController.activity = activity
         case "MoveActivity":
             let destinationViewController = navigationController.topViewController as! FolderTableViewController
             destinationViewController.mode = .moveActivity
@@ -286,18 +297,9 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         return 6
     }
     
-    //MARK: - Private Methods
+    //MARK: - DoneButton
     
-    private func updatePath() {
-        self.pathNavigationItem.title = filesystem.current.url.appendingPathComponent(activity.name).path
-    }
-}
-
-extension UIButton {
-    public func createBorder() {
-        self.backgroundColor = .clear
-        self.layer.cornerRadius = 5
-        self.layer.borderWidth = 1
-        self.layer.borderColor = UIColor.systemBlue.cgColor
+    @objc func doneCallback() {
+        commentTextView.resignFirstResponder()
     }
 }

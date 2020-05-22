@@ -24,6 +24,15 @@ class RotationLabel: UILabel {
     }
 }
 
+class MyFormatter: DefaultValueFormatter {
+    override func stringForValue(_ value: Double, entry: ChartDataEntry, dataSetIndex: Int, viewPortHandler: ViewPortHandler?) -> String {
+        if value != 0 {
+            return super.stringForValue(value, entry: entry, dataSetIndex: dataSetIndex, viewPortHandler: viewPortHandler)
+        }
+        return ""
+    }
+}
+
 class PlotViewController: UIViewController {
     
     //MARK: - Types
@@ -122,7 +131,8 @@ class PlotViewController: UIViewController {
         set.drawCircleHoleEnabled = false
         set.valueTextColor = UIColor.gray
         set.valueFont = UIFont.boldSystemFont(ofSize: 12)
-        set.valueFormatter = DefaultValueFormatter(decimals: 2)
+        set.valueFormatter = MyFormatter(decimals: 2)
+        
         set.circleRadius = 5
         set.setColor(UIColor.black)
         let data = LineChartData(dataSet: set)

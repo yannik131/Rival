@@ -2,32 +2,13 @@
  
 //MARK: - Code
  
- TODO: fillList and printList and traverseDirectory should be 1 function
  TODO: Be careful with Calendar.gregorian/Calendar.current and firstWeekday = 2
  TODO: Replace pickers with pop-up tableViews
  TODO: isFirstOrSecond is just stupid, rtfm
- TODO: all folders are urls
  TODO: IF this is imperformant: orderedActivities can be replaced by https://github.com/lukaskubanek/OrderedDictionary
  
 //MARK: - Plotting
- TODO: If value is 0, display 0 or nothing instead of 0.00
  TODO: Input time range: Default: Last 7 days. Default buttons (last (1-3) weeks, this week), last (1, 2, 3, 6) months, this month, this year. Click on date: Manually select date range with DateView (split ranges?). Sum up weeks in month view, months in year view. Compare last week with current week.
-
- 1. Zeitraum auswählen
-    1a. Willkürliche Datumsauswahl mit dem Kalender, bei Jahresansicht wird immer der erste Monatstag des kleinsten und letzte Monatstag des größten Datums genommen. In der Jahresansicht kann auch 1 Monat auswählt werden, dann wird der erste bzw. letzte Tag dieses Monats als Anfang bzw. Ende festgelegt. Dafür gibts oben rechts nen Okay Button, der Grau ist solange kein Datum ausgewählt wird.
-    1b. Vordefinierte Zeitbereiche: Letzte 7 Tage, diese Woche, letzte Woche, dieser Monat, letzter Monat.
- 2. Anzahl der Tage/Wochen/Monate/Jahre berechnen, die der Zeitraum umspannt
-    2a. Tage: Ende-Anfang
-    2b. Wochen: Solange 1 auf Ende.Woche addieren, bis Ende.Woche in Anfang.Woche liegt
-    2c. Monate: Wie 2b.
-    2d. Jahre: Wie 2b.
- 3. Aus 2. ermitteln, ob eine Granularität angebracht ist oder nicht
-    3a. mind. 2 Tage
-    3b. mind. 2 Wochen
-    3c. mind. 2 Monate
-    3d. mind. 2 Jahre
- 4. Standardgemäß sind Tage bzw. die zuletzt gewählte Granularität ausgewählt. Nicht mögliche Granularitäten sind ausgegraut
- 5. Plot anpassen: Maximal 6 Labels im Format 00.00. passen auf die x-Achse, Nullen ausblenden
  
  Right side - (animated) Plot, use of the app.
  Left side - Video respective to every sentence.
@@ -42,9 +23,9 @@
  TODO: Plot type: Line/Bar/Pie for all 3 options. Pie: 1. Select method 2. Select activities. Line/Bar: Only 1 activity at a time
  
 //MARK: - Explorer
- TODO: +- delete for .intWithoutUnit
- TODO: Move activity to other folder
- TODO: contents(): To much overhead? Are files opened for metadata access?
+ TODO: Dots for selected Activity in Calendar, values in tableView
+ TODO: Timer.startDate and self.chosenDate concurrency
+ TODO: TextField delete button
  TODO: Search bar
  TODO: Image attachments: Add images from photo library/record them, view images inside a view controller with date buttons
  TODO: Audio attachments: Record short audio snippets with AVKit

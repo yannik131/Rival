@@ -78,7 +78,7 @@ class FolderTableViewController: UITableViewController {
         if self.mode == .moveActivity {
             self.navigationItem.rightBarButtonItem!.isEnabled = false
         }
-        if self.mode == .plotSelection && self.selectedActivity != nil {
+        else if self.mode == .plotSelection && self.selectedActivity != nil {
             self.navigationItem.title = self.selectedActivity!.name
             for cell in self.cellList {
                 if let activity = cell.activity {
@@ -87,6 +87,9 @@ class FolderTableViewController: UITableViewController {
                     }
                 }
             }
+        }
+        else if mode == .createFolder {
+            navigationItem.title = folderToCreate.url.path
         }
     }
 
@@ -152,7 +155,7 @@ class FolderTableViewController: UITableViewController {
         case .createFolder:
             if let folder = cellInformation.folder {
                 //If the selected folder is not a subfolder of the current folder, abort.
-                if !filesystem.current.url.contains(folder.url) {
+                if folder.url.contains(folderToCreate.url) {
                     presentErrorAlert(presentingViewController: self, title: "Nö", message: "Einen Überordner in einen Unterordner zu schieben würde eine Endlosschleife verursachen.")
                     return
                 }

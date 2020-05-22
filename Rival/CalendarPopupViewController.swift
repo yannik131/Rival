@@ -44,6 +44,7 @@ class CalendarViewController: UIViewController {
     var rangeSelectionCallback: ((Date, Date) -> Void)!
     var selectionMode: Mode = .singleSelection
     var todayButtonPressed = false
+    var activity: Activity?
     
     
     //MARK: - Initialization
@@ -111,6 +112,12 @@ class CalendarViewController: UIViewController {
             return
         }
         cell.dotView.backgroundColor = UIColor.clear
+        if let activity = activity {
+            if activity[cellState.date].measurement != 0 {
+                cell.dotView.backgroundColor = UIColor.systemGray3
+                cell.dotView.layer.cornerRadius = 5
+            }
+        }
         cell.dateLabel.text = cellState.text
         handleCellTextColor(cell: cell, cellState: cellState)
         handleCellSelected(cell: cell, cellState: cellState)

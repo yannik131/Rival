@@ -9,7 +9,7 @@
 import UIKit
 import os.log
 
-class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
+class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerViewDataSource, DoneButton {
 
     //MARK: - Properties
     
@@ -110,7 +110,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         }
         self.addUIView(view: doubleTextField)
         self.doubleTextField = doubleTextField
-        self.addDoneButton()
+        addDoneButton(parentView: self, to: doubleTextField)
     }
     
     private func createPicker() {
@@ -174,23 +174,10 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         }
     }
     
-    @objc func endDoubleInput() {
+    @objc func doneCallback() {
         self.endEditing(true)
         self.setPracticeAmount()
         self.doubleTextField!.text = self.activity.getPracticeAmountString(date: self.chosenDate)
-    }
-    
-    func addDoneButton() {
-        //This is copied from:
-        //https://stackoverflow.com/questions/20192303/how-to-add-a-done-button-to-numpad-keyboard-in-ios
-        let keyboardToolbar = UIToolbar()
-        keyboardToolbar.sizeToFit()
-        let flexBarButton = UIBarButtonItem(barButtonSystemItem: .flexibleSpace,
-            target: nil, action: nil)
-        let doneBarButton = UIBarButtonItem(barButtonSystemItem: .done,
-                                            target: self, action: #selector(self.endDoubleInput))
-        keyboardToolbar.items = [flexBarButton, doneBarButton]
-        self.doubleTextField!.inputAccessoryView = keyboardToolbar
     }
     
     func setTimePickerSeconds(_ seconds: Int, animated: Bool = false) {
