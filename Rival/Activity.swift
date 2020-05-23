@@ -47,8 +47,8 @@ open class Activity: Codable {
         self.measurementMethod = measurementMethod
         self.unit = unit
         saved = false
-        if measurementMethod == .time {
-            //fillWithTimeData()
+        if name == "5km Lauf" {
+            fillWithTimeData()
         }
     }
     
@@ -95,19 +95,25 @@ open class Activity: Codable {
         }
     }
     
-    func getPracticeAmountString(date: Date) -> String {
-        let measurement = self[date].measurement
+    func getPracticeAmountString(date: Date! = nil, measurement: Double! = nil) -> String {
+        var measurement: Double! = measurement
+        if measurement == nil {
+            measurement = self[date].measurement
+        }
         
         switch(self.measurementMethod) {
         case .yesNo:
             if measurement == 0 {
                 return "Nein"
             }
-            else {
+            else if Int(measurement) == 1 {
                 return "Ja"
             }
+            else {
+                return String(Int(measurement)) + "x"
+            }
         case .doubleWithUnit:
-            return "\(measurement) \(self.unit)"
+            return "\(Double(round(measurement! * 100) / 100)) \(self.unit)"
         case .time:
             return Date.timeString(Int(measurement))
         case .intWithoutUnit:
@@ -115,45 +121,53 @@ open class Activity: Codable {
         }
     }
     
-    func createDataEntries(from startDate: Date, to endDate: Date, summationGranularity: Date.Granularity) -> (entries: [ChartDataEntry], labels: [String]) {
+    func createDataEntries(from startDate: Date, to endDate: Date, granularity: Calendar.Component, ignoreZeros: Bool) -> (entries: [ChartDataEntry], labels: [String]) {
         guard startDate < endDate else {
             fatalError()
         }
-        //If stepWidth is week/month/year, then we start with the first day/week/month of the week/month/year that startDate is part of and end vice versa on endDate
         var entries: [ChartDataEntry] = []
         var labels: [String] = []
-        var counter: Int = 0
-        var current: Date
-        switch(summationGranularity) {
+        let start: Date
+        let end: Date
+        let formatter: ((Date) -> String)
+        switch (granularity) {
         case .day:
-            var endDate = endDate
-            endDate.addDays(days: 1)
-            current = startDate
-            while !Calendar.current.isDate(current, equalTo: endDate, toGranularity: .day) {
-                entries.append(ChartDataEntry(x: Double(counter), y: self[current].measurement))
-                labels.append(current.dateString(with: DateFormats.dayMonth))
-                current.addDays(days: 1)
-                counter += 1
-            }
-        case .week:
-            let start = startDate.startOfWeek
-            current = start
-            let end = endDate.endOfWeek
-            var currentWeekNumber = -1
-            while !Calendar.current.isDate(current, equalTo: end, toGranularity: .day) {
-                let weekNumber = Calendar.iso.component(.weekOfYear, from: current)
-                if currentWeekNumber != weekNumber {
-                    currentWeekNumber = weekNumber
-                    entries.append(ChartDataEntry(x: Double(entries.count), y: 0.0))
-                    labels.append(current.startOfWeek.dateString(with: DateFormats.dayOnly) + "-" + current.endOfWeek.dateString(with: DateFormats.dayOnly))
-                }
-                entries[entries.count-1].y += self[current].measurement
-                current.addDays(days: 1)
-            }
+            start = startDate
+            end = endDate
+            formatter = { $0.dateString(with: DateFormats.dayMonth) }
+        case .weekOfYear:
+            start = startDate.startOfWeek
+            end = endDate.endOfWeek
+            formatter = { $0.startOfWeek.dateString(with: DateFormats.dayOnly) + "-" + $0.endOfWeek.dateString(with: DateFormats.dayOnly) }
         case .month:
-            fallthrough
+            start = startDate.startOfMonth
+            end = endDate.endOfMonth
+            formatter = { $0.dateString(with: DateFormats.monthYearShort) }
         case .year:
+            start = startDate.startOfYear
+            end = endDate.endOfYear
+            formatter = { $0.dateString(with: DateFormats.year) }
+        default:
             fatalError()
+        }
+        var current = start
+        var currentNumber = -1
+        while !Calendar.iso.isDate(current, equalTo: end, toGranularity: .day) {
+            let number = Calendar.iso.component(granularity, from: current)
+            if number != currentNumber {
+                currentNumber = number
+                entries.append(ChartDataEntry(x: Double(entries.count), y: 0.0))
+                labels.append(formatter(current))
+            }
+            entries.last!.y += self[current].measurement
+            current.addDays(days: 1)
+        }
+        
+        if ignoreZeros {
+            entries.removeAll(where: {$0.y == 0})
+            for (index, entry) in entries.enumerated() {
+                entry.x = Double(index)
+            }
         }
         
         return (entries, labels)
@@ -161,13 +175,28 @@ open class Activity: Codable {
     
     //MARK: - Private Methods
     
+    private func set(_ min: Double, _ sec: Double) {
+        self[start].measurement = min * 60 + sec
+        start.addDays(days: 2)
+    }
+    
     func fillWithTimeData() {
-        var date = Date()
-        let times: [Double] = [3600, 2745, 3711, 4000, 2000, 600, 400]
-        for i in 0..<times.count {
-            self[date].measurement = times[i]
-            date.addDays(days: -1)
-        }
+        set(24, 24)
+        set(24, 52)
+        set(25, 46)
+        set(24, 26)
+        set(25, 8)
+        set(24, 18)
+        set(23, 44)
+        set(23, 20)
+        set(22, 0)
+        set(23, 45)
+        set(24, 26)
+        self[DateFormats.shortYear.date(from: "23.04.20")!].measurement = 26*60+8
+        self[DateFormats.shortYear.date(from: "26.04.20")!].measurement = 24*60+31
+        self[DateFormats.shortYear.date(from: "28.04.20")!].measurement = 25*60+35
         saved = false
     }
 }
+
+var start = DateFormats.shortYear.date(from: "02.05.20")!

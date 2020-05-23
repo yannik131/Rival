@@ -45,7 +45,7 @@ class CalendarViewController: UIViewController {
     var selectionMode: Mode = .singleSelection
     var todayButtonPressed = false
     var activity: Activity?
-    
+    let filesystem = Filesystem.shared
     
     //MARK: - Initialization
     
@@ -70,6 +70,7 @@ class CalendarViewController: UIViewController {
             calendar.selectDates(from: firstDate!, to: secondDate!, triggerSelectionDelegate: true, keepSelectionIfMultiSelectionAllowed: true)
         }
         scroll()
+        tableView.allowsSelection = false
     }
     
     //MARK: - Actions
@@ -168,7 +169,7 @@ extension CalendarViewController: JTACMonthViewDataSource {
 extension CalendarViewController: JTACMonthViewDelegate {
     func calendar(_ calendar: JTACMonthView, headerViewForDateRange range: (start: Date, end: Date), at indexPath: IndexPath) -> JTACMonthReusableView {
         let header = calendar.dequeueReusableJTAppleSupplementaryView(withReuseIdentifier: "DateHeader", for: indexPath) as! DateHeader
-        header.monthTitle.text = DateFormats.monthYear.string(from: range.start)
+        header.monthTitle.text = DateFormats.monthYearFull.string(from: range.start)
         header.weekNames.subviews.forEach({$0.removeFromSuperview()})
         for i in 0...6 {
             let label = UILabel()
@@ -225,6 +226,7 @@ extension CalendarViewController: JTACMonthViewDelegate {
                 }
             }
         }
+        tableView.reloadData()
     }
     
     func calendar(_ calendar: JTACMonthView, didDeselectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
@@ -270,11 +272,26 @@ extension CalendarViewController: UITableViewDelegate {
 
 extension CalendarViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 0
+        if activity == nil {
+            return filesystem.current.activities.count
+        }
+        return 1
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell")!
+        var activity = self.activity
+        if activity == nil {
+            activity = filesystem.current.orderedActivities[indexPath.row]
+        }
+        if firstDate != nil && secondDate == nil {
+            cell.textLabel?.text = activity!.name + ": " + activity!.getPracticeAmountString(date: firstDate!)
+        }
+        else if firstDate != nil && secondDate != nil {
+            let sum = activity!.createDataEntries(from: firstDate!, to: secondDate!, granularity: .day, ignoreZeros: false).entries.reduce(0, {$0+$1.y})
+            cell.textLabel?.text = activity!.name + ": " + activity!.getPracticeAmountString(measurement: sum)
+        }
+        cell.imageView?.image = determineActivityImage(for: activity!)
         return cell
     }
 }

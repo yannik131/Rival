@@ -58,22 +58,27 @@ class PlotViewController: UIViewController {
     var selectedPlotType: PlotType = .Line
     var startDate: Date = Date().addingTimeInterval(TimeInterval(exactly: 86400 * 7 * -1)!)
     var endDate: Date = Date()
-    var selectedGranularity: Date.Granularity = .day
+    var selectedGranularity: Calendar.Component = .day
     var selectedPeriodTemplate: Date.PeriodTemplate = .last7Days
     var xAxis: XAxis!
     var yAxis: YAxis!
     var oldFormatter = IndexAxisValueFormatter()
-    var rawTotal: Double = 0.0
+    var selectedPlotTitleState: PlotTitleState = .sum
+    var timeMultiplicationFactor: Double = 1.0
+    var ignoreZeros: Bool = false
 
     //MARK: - Initialization
      
      override func viewDidLoad() {
         super.viewDidLoad()
+        lineChartView.noDataText = "Keine Aktivität ausgewählt"
+        lineChartView.noDataFont = UIFont.systemFont(ofSize: 18)
         self.xAxis = self.lineChartView.xAxis
         self.yAxis = self.lineChartView.leftAxis
         let activities = filesystem.root.orderedActivities
-        if !activities.isEmpty {
-            toPlot = activities[0]
+        toPlot = activities.first
+        if toPlot == nil {
+            detailItem.title = "Aktivität: " + selectedPeriodTemplate.rawValue
         }
      }
      
@@ -101,7 +106,7 @@ class PlotViewController: UIViewController {
         lineChartView.rightAxis.enabled = false
         
         var position = MyYAxisRenderer.Position.top
-        if set.entries[0].y > yAxis.axisMaximum / 2 {
+        if set.entries[0].y > set.yMax / 2 {
             position = .bottom
         }
         if toPlot!.measurementMethod == .yesNo {
@@ -121,7 +126,6 @@ class PlotViewController: UIViewController {
             yAxis.valueFormatter = nil
         }
         
-        lineChartView.leftYAxisRenderer = MyYAxisRenderer(title: yTitle, plotTitle: self.getSumString(), base: lineChartView, position: position)
         lineChartView.xAxisRenderer = MyXAxisRenderer(title: "", base: lineChartView)
         lineChartView.legend.enabled = false
         lineChartView.pinchZoomEnabled = true
@@ -136,52 +140,61 @@ class PlotViewController: UIViewController {
         set.circleRadius = 5
         set.setColor(UIColor.black)
         let data = LineChartData(dataSet: set)
-        
         lineChartView.data = data
+        lineChartView.leftYAxisRenderer = MyYAxisRenderer(title: yTitle, plotTitle: getTitle(), base: lineChartView, position: position)
     }
      
     //MARK: - Private Methods
     
-    private func getSumString() -> String {
-        switch(toPlot!.measurementMethod) {
-        case .yesNo:
-            return "Summe: \(Int(rawTotal))x"
-        case .time:
-            return "Summe: \(Date.timeString(Int(rawTotal)))"
-        case .doubleWithUnit:
-            return "Summe: \(Double(round(rawTotal * 100) / 100)) [\(toPlot!.unit)]"
-        case .intWithoutUnit:
-            return "Summe: \(Int(rawTotal))"
+    private func getTitle() -> String {
+        guard let data = lineChartView.data else {
+            return ""
         }
+        let set = data.dataSets.first! as! LineChartDataSet
+        let sum = set.entries.reduce(0, {$0 + $1.y*(1.0/timeMultiplicationFactor)})
+        var title = selectedPlotTitleState.rawValue + ": "
+        switch(selectedPlotTitleState) {
+        case .sum:
+            title += "\(toPlot!.getPracticeAmountString(measurement: sum))"
+        case .average:
+            title += "\(toPlot!.getPracticeAmountString(measurement: sum/Double(set.entries.count)))"
+        case .median:
+            let entries = set.entries.sorted(by: {$0.y < $1.y})
+            let median = entries[Int(entries.count/2)].y*(1.0/timeMultiplicationFactor)
+            title += "\(toPlot!.getPracticeAmountString(measurement: median))"
+        case .min:
+            title += "\(toPlot!.getPracticeAmountString(measurement: set.yMin*(1.0/timeMultiplicationFactor)))"
+        case .max:
+            title += "\(toPlot!.getPracticeAmountString(measurement: set.yMax*(1.0/timeMultiplicationFactor)))"
+        }
+        return title
     }
     
     private func generatePlotInformation(from activity: Activity) -> (set: LineChartDataSet, labels: [String], yTitle: String) {
-        let (entries, labels) = activity.createDataEntries(from: self.startDate, to: self.endDate, summationGranularity: self.selectedGranularity)
-        rawTotal = entries.reduce(0, {$0 + $1.y})
+        let (entries, labels) = activity.createDataEntries(from: self.startDate, to: self.endDate, granularity: self.selectedGranularity, ignoreZeros: ignoreZeros)
         let title: String
         let maximum = entries.max(by: {$0.y < $1.y})!.y
+        timeMultiplicationFactor = 1.0
         switch(activity.measurementMethod) {
         case .doubleWithUnit:
             title = activity.name + " [" + activity.unit + "]"
         case .intWithoutUnit:
-            title = activity.name
+            title = ""
         case .time:
             let (hours, minutes, _) = Date.split(Int(maximum))
-            let factor: Double
             if hours > 0 {
                 title = "Zeit [h]"
-                factor = 1.0/3600
+                timeMultiplicationFactor = 1.0/3600
             }
             else if minutes > 0 {
                 title = "Zeit [m]"
-                factor = 1.0/60
+                timeMultiplicationFactor = 1.0/60
             }
             else {
                 title = "Zeit [s]"
-                factor = 1.0
             }
             for dataEntry in entries {
-                dataEntry.y *= factor
+                dataEntry.y *= timeMultiplicationFactor
             }
         case .yesNo:
             title = ""
@@ -195,7 +208,7 @@ class PlotViewController: UIViewController {
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let owningNavigationController = segue.destination as! UINavigationController
-        if segue.identifier == "plotSelection" {
+        if segue.identifier == "PlotSelection" {
             let folderController = owningNavigationController.topViewController as! FolderTableViewController
             folderController.mode = .plotSelection
             folderController.selectionCallback = { (activity: Activity) in
@@ -203,17 +216,31 @@ class PlotViewController: UIViewController {
             }
             folderController.selectedActivity = self.toPlot
         }
-        else if segue.identifier == "dateSelection" {
+        else if segue.identifier == "DateSelection" {
             let dateController = owningNavigationController.topViewController as! TimePeriodSelectionTableViewController
             dateController.startDate = self.startDate
             dateController.endDate = self.endDate
             dateController.selectedPeriodTemplate = self.selectedPeriodTemplate
             dateController.selectedGranularity = self.selectedGranularity
-            dateController.selectionCallback = {(startDate: Date, endDate: Date, granularity: Date.Granularity, periodTemplate: Date.PeriodTemplate) in
+            dateController.selectionCallback = {(startDate: Date, endDate: Date, granularity: Calendar.Component, periodTemplate: Date.PeriodTemplate) in
                 self.startDate = startDate
                 self.endDate = endDate
                 self.selectedGranularity = granularity
                 self.selectedPeriodTemplate = periodTemplate
+                self.refreshPlot()
+            }
+            dateController.activity = toPlot
+        }
+        else if segue.identifier == "PlotOptions" {
+            let optionsController = owningNavigationController.topViewController as! PlotOptionsTableViewController
+            optionsController.selectedPlotTitleState = selectedPlotTitleState
+            optionsController.plotTitleSelectionCallback = { (state: PlotTitleState) in
+                self.selectedPlotTitleState = state
+                self.refreshPlot()
+            }
+            optionsController.ignoreZeros = ignoreZeros
+            optionsController.ignoreZerosCallback = { (ignoreZeros: Bool) in
+                self.ignoreZeros = ignoreZeros
                 self.refreshPlot()
             }
         }

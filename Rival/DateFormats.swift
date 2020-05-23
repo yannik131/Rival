@@ -13,14 +13,18 @@ open class DateFormats {
     public static let dayMonth = DateFormatter()
     public static let shortYear = DateFormatter()
     public static let dayOnly = DateFormatter()
-    public static let monthYear = DateFormatter()
+    public static let monthYearFull = DateFormatter()
+    public static let monthYearShort = DateFormatter()
+    public static let year = DateFormatter()
     
     static func initialize(locale: Locale) {
         DateFormats.set(formatter: DateFormats.full, template: "ddMMyyyy", locale: locale)
         DateFormats.set(formatter: DateFormats.dayMonth, template: "ddMM", locale: locale)
         DateFormats.set(formatter: DateFormats.shortYear, template: "ddMMyy", locale: locale)
         DateFormats.set(formatter: DateFormats.dayOnly, template: "dd", locale: locale)
-        DateFormats.set(formatter: DateFormats.monthYear, template: "LLLL yyyy", locale: locale)
+        DateFormats.set(formatter: DateFormats.monthYearFull, template: "LLLL yyyy", locale: locale)
+        DateFormats.set(formatter: DateFormats.monthYearShort, template: "MMyy", locale: locale)
+        DateFormats.set(formatter: DateFormats.year, template: "yy", locale: locale)
     }
     
     private static func set(formatter: DateFormatter, template: String, locale: Locale) {
@@ -32,8 +36,9 @@ open class DateFormats {
 extension Calendar {
     public static var iso = Calendar(identifier: .iso8601)
     
-    public static func initialize() {
+    public static func initialize(locale: Locale) {
         Calendar.iso.firstWeekday = 2
+        Calendar.iso.locale = locale
     }
 }
 
@@ -54,15 +59,16 @@ extension Date {
         return Calendar.iso.date(byAdding: .day, value: -1, to: Calendar.iso.date(byAdding: .month, value: 1, to: self)!.startOfMonth)!
     }
     
-    var month: Int {
-        return Calendar.iso.component(.month, from: self)
+    var startOfYear: Date {
+        return Calendar.iso.date(from: Calendar.iso.dateComponents([.year], from: self))!
     }
     
-    enum Granularity: String, CaseIterable {
-        case day = "Tag"
-        case week = "Woche"
-        case month = "Monat"
-        case year = "Jahr"
+    var endOfYear: Date {
+        return Calendar.iso.date(byAdding: .day, value: -1, to: Calendar.iso.date(byAdding: .year, value: 1, to: self)!.startOfYear)!
+    }
+    
+    var month: Int {
+        return Calendar.iso.component(.month, from: self)
     }
     
     enum PeriodTemplate: String, CaseIterable {
@@ -71,6 +77,8 @@ extension Date {
         case lastWeek = "Letzte Woche"
         case thisMonth = "Dieser Monat"
         case lastMonth = "Letzter Monat"
+        case thisYear = "Dieses Jahr"
+        case lastYear = "Letztes Jahr"
         case custom = "Manuell"
     }
     

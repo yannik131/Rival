@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 
 public func presentErrorAlert(presentingViewController: UIViewController, error: Error! = nil, title: String? = nil, message: String? = nil) {
-    if error == nil && message == nil {
+    guard error != nil || message != nil else {
         fatalError()
     }
     var title = title ?? "Fehler"
@@ -42,8 +42,7 @@ public func presentErrorAlert(presentingViewController: UIViewController, error:
 }
 
 func addDoneButton<ParentType: UIResponder & DoneButton>(parentView: ParentType, to view: UIView) {
-    //This is copied from:
-    //https://stackoverflow.com/questions/20192303/how-to-add-a-done-button-to-numpad-keyboard-in-ios
+    //This is copied from: https://stackoverflow.com/questions/20192303/how-to-add-a-done-button-to-numpad-keyboard-in-ios
     let keyboardToolbar = UIToolbar()
     keyboardToolbar.sizeToFit()
     let flexBarButton = UIBarButtonItem(barButtonSystemItem: .flexibleSpace,
@@ -59,6 +58,19 @@ func addDoneButton<ParentType: UIResponder & DoneButton>(parentView: ParentType,
     }
 }
 
+func determineActivityImage(for activity: Activity) -> UIImage {
+    switch(activity.measurementMethod) {
+    case .time:
+        return UIImage(systemName: "clock")!
+    case .yesNo:
+        return UIImage(systemName: "checkmark.circle")!
+    case .intWithoutUnit:
+        return UIImage(systemName: "number.circle")!
+    case .doubleWithUnit:
+        return UIImage(systemName: "u.circle")!
+    }
+}
+
 //MARK: - Extensions
 
 extension UIButton {
@@ -67,6 +79,11 @@ extension UIButton {
         self.layer.cornerRadius = 5
         self.layer.borderWidth = 1
         self.layer.borderColor = UIColor.systemBlue.cgColor
+    }
+    
+    public func disable() {
+        isEnabled = false
+        tintColor = UIColor.systemGray6
     }
 }
 

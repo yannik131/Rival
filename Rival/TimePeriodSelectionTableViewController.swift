@@ -10,16 +10,12 @@ import UIKit
 
 class TimePeriodSelectionTableViewController: UITableViewController {
     
-    //MARK: - Types
-    
-    
-    
     //MARK: - Properties
     @IBOutlet weak var dateButton: UIButton!
     @IBOutlet weak var granularityPicker: UIPickerView!
     @IBOutlet weak var periodTemplatePicker: UIPickerView!
     
-    var selectedGranularity: Date.Granularity!
+    var selectedGranularity: Calendar.Component!
     var selectedPeriodTemplate: Date.PeriodTemplate! {
         didSet {
             self.update()
@@ -27,8 +23,9 @@ class TimePeriodSelectionTableViewController: UITableViewController {
     }
     var startDate: Date!
     var endDate: Date!
-    
-    var selectionCallback: ((Date, Date, Date.Granularity, Date.PeriodTemplate) -> ())!
+    var activity: Activity?
+    var availableComponents: [(Calendar.Component, String)] = [(.day, "Tag"), (.weekOfYear, "Woche"), (.month, "Monat"), (.year, "Jahr")]
+    var selectionCallback: ((Date, Date, Calendar.Component, Date.PeriodTemplate) -> ())!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,7 +34,7 @@ class TimePeriodSelectionTableViewController: UITableViewController {
         self.granularityPicker.dataSource = self
         self.periodTemplatePicker.delegate = self
         self.periodTemplatePicker.dataSource = self
-        self.granularityPicker.selectRow(Date.Granularity.allCases.firstIndex(of: self.selectedGranularity)!, inComponent: 0, animated: false)
+        self.granularityPicker.selectRow(availableComponents.firstIndex(where: {$0.0 == selectedGranularity})!, inComponent: 0, animated: false)
         self.periodTemplatePicker.selectRow(Date.PeriodTemplate.allCases.firstIndex(of: self.selectedPeriodTemplate)!, inComponent: 0, animated: false)
         self.update()
     }
@@ -60,6 +57,7 @@ class TimePeriodSelectionTableViewController: UITableViewController {
                 self.update()
                 self.selectionCallback($0, $1, self.selectedGranularity, self.selectedPeriodTemplate)
             }
+            calendarViewController.activity = activity
         default:
             fatalError()
         }
@@ -85,6 +83,12 @@ class TimePeriodSelectionTableViewController: UITableViewController {
         case .lastMonth:
             startDate = Calendar.iso.date(byAdding: .month, value: -1, to: startDate)!.startOfMonth
             endDate = startDate.endOfMonth
+        case .thisYear:
+            startDate = startDate.startOfYear
+            endDate = endDate.endOfYear
+        case .lastYear:
+            startDate = Calendar.iso.date(byAdding: .year, value: -1, to: startDate)!.startOfYear
+            endDate = startDate.endOfYear
         case .custom:
             break
         default:
@@ -127,9 +131,9 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         switch(pickerView) {
         case self.granularityPicker:
-            return 4
+            return availableComponents.count
         case self.periodTemplatePicker:
-            return 6
+            return Date.PeriodTemplate.allCases.count
         default:
             fatalError()
         }
@@ -138,7 +142,7 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         switch(pickerView) {
         case self.granularityPicker:
-            return Date.Granularity.allCases[row].rawValue
+            return availableComponents[row].1
         case self.periodTemplatePicker:
             return Date.PeriodTemplate.allCases[row].rawValue
         default:
@@ -149,7 +153,7 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch(pickerView) {
         case self.granularityPicker:
-            self.selectedGranularity = Date.Granularity.allCases[row]
+            self.selectedGranularity = availableComponents[row].0
         case self.periodTemplatePicker:
             self.selectedPeriodTemplate = Date.PeriodTemplate.allCases[row]
         default:

@@ -8,6 +8,47 @@
 
 import UIKit
 
+class CellInformation {
+    
+    //MARK: - Types
+    
+    enum SelectedState {
+        case unselected
+        case selected
+        case subitem
+    }
+    
+    //MARK: - Properties
+    
+    var level: Int
+    var activity: Activity?
+    var folder: Folder?
+    var url: URL
+    var state = SelectedState.unselected
+    var selected: Bool {
+        return state == .selected || state == .subitem
+    }
+    
+    //MARK: - Initialization
+    
+    init(level: Int, activity: Activity? = nil, folder: Folder? = nil, url: URL) {
+        self.level = level
+        self.activity = activity
+        self.folder = folder
+        self.state = .unselected
+        self.url = url
+    }
+    
+    //MARK: - Public Methods
+    
+    func determineTextColor() -> UIColor {
+        if state == .subitem {
+            return UIColor.lightGray
+        }
+        return UIColor.black
+    }
+}
+
 class FolderTableViewController: UITableViewController {
     
     //MARK: - Types
@@ -18,32 +59,10 @@ class FolderTableViewController: UITableViewController {
         case moveActivity
     }
     
-    enum SelectedState {
-        case unselected
-        case selected
-        case subitem
-    }
-    
-    class CellInformation {
-        init(level: Int, activity: Activity? = nil, folder: Folder? = nil, url: URL) {
-            self.level = level
-            self.activity = activity
-            self.folder = folder
-            self.state = .unselected
-            self.url = url
-        }
-        var level: Int
-        var activity: Activity?
-        var folder: Folder?
-        var url: URL
-        var state = SelectedState.unselected
-    }
-    
     //MARK: - Properties
     
     let filesystem = Filesystem.shared
     var cellList: [CellInformation] = []
-    let levelCharacter = "\t"
     var mode: Mode = .createFolder
     ///If mode is .plotSelection, this will be called in didSelectRow
     var selectionCallback: ((Activity) -> ())!
@@ -51,26 +70,16 @@ class FolderTableViewController: UITableViewController {
     var selectedActivity: Activity!
     ///If mode is .createFolder, this will be set by AddNewActivityViewController
     var folderToCreate: Folder!
-    ///Is called in saveButtonTapped if the mode is .createFolder
+    ///If mode is .createFolder, this is called in saveButtonTapped
     var folderCreationCallback: (() -> Void)!
     ///If mode is .moveActivity, this will be set in didSelectRow
     var activityToMove: Activity!
     ///If mode is .moveActivity, this is the folder the user selected. Is set in didSelectRow and used in saveButtonTapped
     var selectedFolder: Folder!
-    ///Is called in saveButtonTapped if the mode is .moveActivity
+    ///If mode is .moveActivity, this is called in saveButtonTapped
     var moveCallback: (() -> Void)!
     
     //MARK: - Initialization
-    
-    private func fillList() {
-        let action = {(folder: Folder, level: Int) in
-            self.cellList.append(CellInformation(level: level, activity: nil, folder: folder, url: folder.url))
-            for activity in folder.activities.values {
-                self.cellList.append(CellInformation(level: level, activity: activity, folder: nil, url: folder.url.appendingPathComponent(activity.id.uuidString)))
-            }
-        }
-        filesystem.traverseDown(folderAction: action)
-    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -102,45 +111,23 @@ class FolderTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return self.cellList.count
     }
-    
-    func textColor(for state: SelectedState) -> UIColor {
-        if state == .subitem {
-            return UIColor.lightGray
-        }
-        return UIColor.black
-    }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cellInformation = self.cellList[indexPath.row]
-        let state = cellInformation.state
-        if let folder = cellInformation.folder { //This is a folder
-            let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigFolderCell", for: indexPath) as! FolderConfigFolderTableViewCell
-            cell.folderName.text = String(repeating: self.levelCharacter, count: cellInformation.level)+folder.name
-            cell.folderImageView.image = UIImage(systemName: "folder")
-            if self.mode == .createFolder {
-                cell.checkButton.isSelected = state == .selected || state == .subitem
-            }
-            else if self.mode == .plotSelection {
+        if cellInformation.folder != nil { //This is a folder
+            let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigFolderCell", for: indexPath) as! FolderConfigCell
+            cell.setInformation(information: cellInformation, levelCharacter: "\t")
+            if mode == .plotSelection {
                 cell.checkButton.isHidden = true
             }
-            else if self.mode == .moveActivity {
-                cell.checkButton.isSelected = state == .selected
-            }
-            cell.folderName.textColor = self.textColor(for: state)
-            self.tableView.reloadRows(at: [indexPath], with: .none)
             return cell
         }
-        else if let activity = cellInformation.activity { //This is an activity
-            let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigActivityCell", for: indexPath) as! FolderConfigActivityTableViewCell
-            cell.activityName.text = String(repeating: self.levelCharacter, count: cellInformation.level)+activity.name
-            if self.mode == .moveActivity {
+        else if cellInformation.activity != nil { //This is an activity
+            let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigActivityCell", for: indexPath) as! ActivityConfigCell
+            cell.setInformation(information: cellInformation)
+            if mode == .moveActivity {
                 cell.checkButton.isHidden = true
             }
-            else {
-                cell.checkButton.isSelected = state == .selected || state == .subitem
-            }
-            cell.activityName.textColor = self.textColor(for: state)
-            self.tableView.reloadRows(at: [indexPath], with: .none)
             return cell
         }
         else {
@@ -150,43 +137,9 @@ class FolderTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let cellInformation = self.cellList[indexPath.row]
-        let state = cellInformation.state
         switch(mode) {
         case .createFolder:
-            if let folder = cellInformation.folder {
-                //If the selected folder is not a subfolder of the current folder, abort.
-                if folder.url.contains(folderToCreate.url) {
-                    presentErrorAlert(presentingViewController: self, title: "Nö", message: "Einen Überordner in einen Unterordner zu schieben würde eine Endlosschleife verursachen.")
-                    return
-                }
-                //(De)select the folder and all subitems of it
-                var newState: SelectedState = .subitem
-                if state == .selected {
-                    newState = .unselected
-                    //An url does not contain itself, so the selected folder state can be
-                    //set separetely
-                    cellInformation.state = .unselected
-                }
-                else if state == .unselected {
-                    cellInformation.state = .selected
-                }
-                for cell in self.cellList {
-                    if folder.url.contains(cell.url) {
-                        cell.state = newState
-                    }
-                }
-            }
-            else if cellInformation.activity != nil {
-                if state == .subitem {
-                    return
-                }
-                else if state == .selected {
-                    cellInformation.state = .unselected
-                }
-                else if state == .unselected {
-                    cellInformation.state = .selected
-                }
-            }
+            handleSelectionInFolderCreationMode(at: indexPath)
         case .moveActivity:
             guard let folder = cellInformation.folder else {
                 return
@@ -203,10 +156,14 @@ class FolderTableViewController: UITableViewController {
             deselectAll()
             cellInformation.state = .selected
             tableView.reloadData()
-            dismiss(animated: true, completion: nil)
+            DispatchQueue.main.async {
+                self.dismiss(animated: true, completion: nil)
+            }
         }
         tableView.reloadData()
     }
+    
+    //MARK: - Actions
     
     @IBAction func cancelButtonTapped(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
@@ -241,6 +198,57 @@ class FolderTableViewController: UITableViewController {
         catch {
             presentErrorAlert(presentingViewController: self, error: error)
         }
+    }
+    
+    //MARK: - Private Methods
+    
+    private func handleSelectionInFolderCreationMode(at indexPath: IndexPath) {
+        let cellInformation = cellList[indexPath.row]
+        let state = cellInformation.state
+        
+        if let folder = cellInformation.folder {
+            //If the selected folder is not a subfolder of the current folder, abort.
+            if folder.url.contains(folderToCreate.url) {
+                presentErrorAlert(presentingViewController: self, title: "Nö.", message: "Einen Überordner in einen Unterordner zu schieben würde eine Endlosschleife verursachen.")
+                return
+            }
+            //(De)select the folder and all subitems of it
+            var newState: CellInformation.SelectedState = .subitem
+            if state == .selected {
+                newState = .unselected
+                //An url does not contain itself, so the selected folder state can be set separetely
+                cellInformation.state = .unselected
+            }
+            else if state == .unselected {
+                cellInformation.state = .selected
+            }
+            for cell in self.cellList {
+                if folder.url.contains(cell.url) {
+                    cell.state = newState
+                }
+            }
+        }
+        else if cellInformation.activity != nil {
+            if state == .subitem {
+                return
+            }
+            else if state == .selected {
+                cellInformation.state = .unselected
+            }
+            else if state == .unselected {
+                cellInformation.state = .selected
+            }
+        }
+    }
+    
+    private func fillList() {
+        let action = {(folder: Folder, level: Int) in
+            self.cellList.append(CellInformation(level: level, activity: nil, folder: folder, url: folder.url))
+            for activity in folder.activities.values {
+                self.cellList.append(CellInformation(level: level, activity: activity, folder: nil, url: folder.url.appendingPathComponent(activity.id.uuidString)))
+            }
+        }
+        filesystem.traverseDown(folderAction: action)
     }
     
     private func deselectAll() {

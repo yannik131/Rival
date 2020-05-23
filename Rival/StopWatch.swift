@@ -38,16 +38,6 @@ class StopWatch {
         isPaused = false
     }
     
-    public func pause() {
-        guard isRunning else {
-            return
-        }
-        elapsedTime += diff()
-        startStamp = nil
-        isRunning = false
-        isPaused = true
-    }
-    
     public func stop() {
         elapsedTime += diff()
         startStamp = nil

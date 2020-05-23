@@ -55,6 +55,12 @@ class ExplorerTableViewController: UITableViewController {
         self.chosenDate.addDays(days: 1)
     }
     
+    @objc private func closeCurrentFolder() {
+        self.adjustRowNumbersAfterAction {
+            filesystem.close()
+        }
+    }
+    
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -67,26 +73,6 @@ class ExplorerTableViewController: UITableViewController {
             return total
         }
         return self.minimumCellNumber
-    }
-    
-    private func getSelectedActivity(for indexPath: IndexPath) -> Activity? {
-        let folderCount = filesystem.current.folders.count
-        let activityCount = filesystem.current.activities.count
-        if folderCount == 0 || indexPath.row+1 > folderCount {
-            let activityIndex = indexPath.row - folderCount
-            guard activityIndex >= 0 && activityIndex < activityCount else {
-                return nil
-            }
-            return filesystem.current.orderedActivities[activityIndex]
-        }
-        return nil
-    }
-    
-    private func getSelectedFolder(for indexPath: IndexPath) -> Folder? {
-        if indexPath.row < filesystem.current.folders.count {
-            return filesystem.current.orderedFolders[indexPath.row]
-        }
-        return nil
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -107,8 +93,7 @@ class ExplorerTableViewController: UITableViewController {
             return cell
         }
         else if let cell = tableView.dequeueReusableCell(withIdentifier: "folderCell", for: indexPath) as? FolderTableViewCell {
-            cell.folderName.text! = ""
-            cell.folderImageView.image = nil
+            cell.folder = nil
             return cell
         }
         else {
@@ -124,15 +109,10 @@ class ExplorerTableViewController: UITableViewController {
         }
     }
     
-    @objc private func closeCurrentFolder() {
-        self.adjustRowNumbersAfterAction {
-            filesystem.close()
-        }
-    }
-    
     override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
         if tableView.isEditing {
             if indexPath.row < filesystem.count {
+                
                 return .delete
             }
         }
@@ -265,6 +245,26 @@ class ExplorerTableViewController: UITableViewController {
     }
     
     //MARK: Model Stuff
+    
+    private func getSelectedActivity(for indexPath: IndexPath) -> Activity? {
+        let folderCount = filesystem.current.folders.count
+        let activityCount = filesystem.current.activities.count
+        if folderCount == 0 || indexPath.row+1 > folderCount {
+            let activityIndex = indexPath.row - folderCount
+            guard activityIndex >= 0 && activityIndex < activityCount else {
+                return nil
+            }
+            return filesystem.current.orderedActivities[activityIndex]
+        }
+        return nil
+    }
+    
+    private func getSelectedFolder(for indexPath: IndexPath) -> Folder? {
+        if indexPath.row < filesystem.current.folders.count {
+            return filesystem.current.orderedFolders[indexPath.row]
+        }
+        return nil
+    }
     
     private func loadSampleData() {
         do {

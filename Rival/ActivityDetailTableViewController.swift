@@ -22,8 +22,10 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     @IBOutlet weak var rightButton: UIButton!
     @IBOutlet weak var dateButton: UIButton!
     @IBOutlet weak var addButton: UIBarButtonItem!
-    @IBOutlet weak var addAttachmentButton: UIButton!
     @IBOutlet weak var moveButton: UIButton!
+    @IBOutlet weak var attachmentAccessButton: UIButton!
+    @IBOutlet weak var attachmentModifyButton: UIButton!
+    
     
     var activity: Activity!
     var selectDateCallback: ((Date) -> ())!
@@ -73,7 +75,6 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.commentTextView.layer.cornerRadius = 10
         addDoneButton(parentView: self, to: commentTextView)
         setUpButtons()
-        self.moveButton.createBorder()
         self.updateButtonStates()
         self.updatePath()
         createDateButtons()
@@ -111,7 +112,9 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         leftButton.createBorder()
         middleButton.createBorder()
         rightButton.createBorder()
-        rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
+        moveButton.createBorder()
+        attachmentModifyButton.createBorder()
+        attachmentAccessButton.createBorder()
         if activity.measurementMethod == .time {
             leftButton.setTitle("Läuft..", for: .selected)
             leftButton.addTarget(self, action: #selector(startTimer), for: .touchUpInside)
@@ -123,6 +126,9 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             middleButton.setTitle("-", for: .normal)
             leftButton.addTarget(self, action: #selector(addOne), for: .touchUpInside)
             middleButton.addTarget(self, action: #selector(substractOne), for: .touchUpInside)
+        }
+        if activity.measurementMethod != .time {
+            rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
         }
     }
     
@@ -164,6 +170,25 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.quantityView.setUpView(activity: self.activity, date: self.chosenDate)
         self.setDateButtonDate()
         self.navigationItem.title = self.chosenDate.dateString()
+        attachmentModifyButton.setTitle("Aufnehmen", for: .normal)
+        switch(activity.attachmentType) {
+        case .audio:
+            attachmentAccessButton.setTitle("Abspielen", for: .normal)
+        case .photo:
+            attachmentAccessButton.setTitle("Ansehen", for: .normal)
+        case .video:
+            attachmentAccessButton.setTitle("Anschauen", for: .normal)
+        case .none:
+            break
+        }
+        if activity.attachmentType == .none {
+            attachmentModifyButton.isHidden = true
+            attachmentAccessButton.isHidden = true
+        }
+        else {
+            attachmentModifyButton.isHidden = false
+            attachmentAccessButton.isHidden = false
+        }
     }
     
     //MARK: - Actions
@@ -212,10 +237,6 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         if !stopWatch.isRunning {
             stopWatch.start()
             setStartButtonRunning()
-        }
-        else {
-            stopWatch.pause()
-            setStartButtonPaused()
         }
     }
     

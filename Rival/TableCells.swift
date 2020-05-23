@@ -17,10 +17,18 @@ class FolderTableViewCell: UITableViewCell {
     
     var folder: Folder! {
         didSet {
-            if folderImageView.image == nil {
-                folderImageView.image = UIImage(systemName: "folder")
+            if folder == nil {
+                folderImageView.isHidden = true
+                folderName.text = nil
+                return
             }
-            folderName.text = folder.name
+            else {
+                folderName.text = folder.name
+                folderImageView.isHidden = false
+                if folderImageView.image == nil {
+                    folderImageView.image = UIImage(systemName: "folder")
+                }
+            }
         }
     }
 }
@@ -43,26 +51,38 @@ class ActivityTableViewCell: UITableViewCell {
                 practiceAmountLabel.text! += "..."
             }
         }
-        switch(activity.measurementMethod) {
-        case .time:
-            activityImageView.image = UIImage(systemName: "clock")
-        case .yesNo:
-            activityImageView.image = UIImage(systemName: "checkmark.circle")
-        case .intWithoutUnit:
-            activityImageView.image = UIImage(systemName: "number.circle")
-        case .doubleWithUnit:
-            activityImageView.image = UIImage(systemName: "u.circle")
+        activityImageView.image = determineActivityImage(for: activity)
+    }
+}
+
+class FolderConfigCell: UITableViewCell {
+    @IBOutlet weak var folderName: UILabel!
+    @IBOutlet weak var checkButton: UIButton!
+    @IBOutlet weak var folderImageView: UIImageView!
+
+    func setInformation(information: CellInformation, levelCharacter: String) {
+        guard let folder = information.folder else {
+            fatalError()
+        }
+        folderName.text = String(repeating: levelCharacter, count: information.level)+folder.name
+        folderName.textColor = information.determineTextColor()
+        checkButton.isSelected = information.selected
+        if folderImageView.image == nil {
+            folderImageView.image = UIImage(systemName: "folder")
         }
     }
 }
 
-class FolderConfigFolderTableViewCell: UITableViewCell {
-    @IBOutlet weak var folderName: UILabel!
-    @IBOutlet weak var checkButton: UIButton!
-    @IBOutlet weak var folderImageView: UIImageView!
-}
-
-class FolderConfigActivityTableViewCell: UITableViewCell {
+class ActivityConfigCell: UITableViewCell {
     @IBOutlet weak var activityName: UILabel!
     @IBOutlet weak var checkButton: UIButton!
+
+    func setInformation(information: CellInformation) {
+        guard let activity = information.activity else {
+            fatalError()
+        }
+        activityName.text = activity.name
+        activityName.textColor = information.determineTextColor()
+        checkButton.isSelected = information.selected
+    }
 }

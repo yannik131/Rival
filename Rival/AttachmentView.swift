@@ -11,39 +11,8 @@ import AVFoundation
 
 class AttachmentView: UIView {
     
-    func setUpView(photo: Data? = nil,
-                   video: Data? = nil,
-                   audio: Data? = nil) {
-        if let photo = photo {
-            
-        }
-        else if let video = video {
-            
-        }
-        else if let audio = audio {
-            
-        }
-        else {
-            return
-        }
-        let tap = UITapGestureRecognizer(target: self, action: #selector(self.viewTapped(_:)))
-        self.addGestureRecognizer(tap)
-    }
+    //MARK: - Properties
     
-    @objc func viewTapped(_ sender: UITapGestureRecognizer) {
-        
-    }
     
-    func loadPhoto(photo: UIImage? = nil) {
-        
-    }
-
-    /*
-    // Only override draw() if you perform custom drawing.
-    // An empty implementation adversely affects performance during animation.
-    override func draw(_ rect: CGRect) {
-        // Drawing code
-    }
-    */
-
+    
 }
