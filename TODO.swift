@@ -15,8 +15,7 @@
  TODO: Plot type: Line/Bar/Pie for all 3 options. Pie: 1. Select method 2. Select activities. Line/Bar: Only 1 activity at a time
  
 //MARK: - Explorer
- TODO: Dots for selected Activity in Calendar, values in tableView
- TODO: Timer.startDate and self.chosenDate concurrency
+ TODO: Timer.startDate and self.chosenDate concurrency: Add value of end-start to today's value or make a cut at 23:59:59
  TODO: TextField delete button
  TODO: Search bar
  TODO: Image attachments: Add images from photo library/record them, view images inside a view controller with date buttons

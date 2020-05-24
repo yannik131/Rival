@@ -262,6 +262,7 @@ class Filesystem {
         }
         current.activities[name] = activity
         activities[activity.id] = activity
+        saveActivitiesToArchiveURL()
     }
     
     func deleteActivity(_ name: String) {
@@ -272,6 +273,7 @@ class Filesystem {
         if manager.fileExists(atPath: urlToRemove.path) {
             try! manager.removeItem(at: urlToRemove)
         }
+        saveActivitiesToArchiveURL()
     }
     
     func moveActivity(_ activity: Activity, from srcURL: URL, to dstURL: URL) throws {
@@ -282,6 +284,7 @@ class Filesystem {
         }
         sourceFolder.activities[activity.name] = nil
         destinationFolder.activities[activity.name] = activity
+        saveActivitiesToArchiveURL()
     }
     
     func createFolder(_ name: String) throws  {
@@ -289,6 +292,7 @@ class Filesystem {
             throw FilesystemError.cannotCreate("Es gibt bereits einen Ordner mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
         }
         current.folders[name] = Folder(name, parent: current)
+        saveToArchiveURL()
     }
     
     func deleteFolder(_ name: String) throws {
@@ -310,6 +314,7 @@ class Filesystem {
             f.value.parent = parent
         }
         parent.folders[name] = nil
+        saveToArchiveURL()
     }
     
     func moveFolder(from srcURL: URL, to dstURL: URL) throws {

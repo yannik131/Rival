@@ -43,9 +43,10 @@ class CalendarViewController: UIViewController {
     var singleSelectionCallback: ((Date) -> Void)!
     var rangeSelectionCallback: ((Date, Date) -> Void)!
     var selectionMode: Mode = .singleSelection
-    var todayButtonPressed = false
+    var internallyInitiated: Bool = false
     var activity: Activity?
     let filesystem = Filesystem.shared
+    let iso = Calendar.iso
     
     //MARK: - Initialization
     
@@ -92,9 +93,8 @@ class CalendarViewController: UIViewController {
     }
     
     @IBAction func todayChosen(_ sender: UIBarButtonItem) {
-        todayButtonPressed = true
-        currentDate = Date()
-        calendar.selectDates([currentDate])
+        print("first: \(firstDate?.dateString()), second: \(secondDate?.dateString()), today: \(Date().dateString())")
+        dateTapped(date: Date())
         scroll()
     }
     
@@ -134,22 +134,68 @@ class CalendarViewController: UIViewController {
     }
     
     private func handleCellSelected(cell: DateCell, cellState: CellState) {
-        let isFirstOrSecond: Bool
-        if let first = firstDate, first == cellState.date {
-            isFirstOrSecond = true
+        let date = cellState.date
+        if firstDate?.dateString() == date.dateString() && secondDate == nil {
+            cell.selectedView.backgroundColor = UIColor.blue
+            return
         }
-        else if let second = secondDate, second == cellState.date {
-            isFirstOrSecond = true
-        }
-        else {
-            isFirstOrSecond = false
+        else if let first = firstDate, let second = secondDate {
+            if iso.startOfDay(for: date) >= iso.startOfDay(for: first) && iso.startOfDay(for: date) <= iso.startOfDay(for: second) {
+                cell.selectedView.backgroundColor = UIColor.blue
+                return
+            }
         }
         
-        if cellState.isSelected || (isFirstOrSecond && self.selectionMode == .rangeSelection) {
-            cell.selectedView.backgroundColor = UIColor.blue
+        cell.selectedView.backgroundColor = UIColor.clear
+    }
+    
+    private func refreshCurrentMonth() {
+        
+    }
+    
+    private func dateTapped(date: Date) {
+        switch(selectionMode) {
+        case .singleSelection:
+            firstDate = date
+            singleSelectionCallback(date)
+        case .rangeSelection:
+            if firstDate == nil {
+                firstDate = date
+            }
+            else if firstDate != nil && secondDate == nil {
+                guard firstDate != date else {
+                    return
+                }
+                secondDate = date
+                if secondDate! < firstDate! {
+                    swap(&firstDate, &secondDate)
+                }
+                rangeSelectionCallback(firstDate!, secondDate!)
+            }
+            else if firstDate != nil && secondDate != nil {
+                firstDate = date
+                secondDate = nil
+            }
         }
-        else {
-            cell.selectedView.backgroundColor = UIColor.clear
+        tableView.reloadData()
+        
+        if !Calendar.iso.isDate(date, equalTo: currentDate, toGranularity: .month) {
+            if date > currentDate {
+                nextMonthChosen(nil)
+            }
+            else {
+                previousMonthChosen(nil)
+            }
+        }
+        for cell in calendar.visibleCells {
+            let cell = cell as? DateCell
+            var dates: [Date] = []
+            var start = currentDate.startOfMonth
+            while start.dateString() != currentDate.endOfMonth.dateString() {
+                dates.append(start)
+                start.addDays(days: 1)
+            }
+            calendar.reloadDates(dates)
         }
     }
 }
@@ -189,62 +235,11 @@ extension CalendarViewController: JTACMonthViewDelegate {
         return MonthSize(defaultSize: 60)
     }
     
-    func calendar(_ calendar: JTACMonthView, didSelectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
-        switch(self.selectionMode) {
-        case .singleSelection:
-            self.firstDate = date
-            singleSelectionCallback(date)
-        case .rangeSelection:
-            if self.firstDate == nil {
-                self.firstDate = date
-            }
-            else if self.secondDate == nil && cellState.date != firstDate! {
-                self.secondDate = date
-                if secondDate! < firstDate! {
-                    swap(&firstDate, &secondDate)
-                }
-                calendar.selectDates(from: firstDate!, to: secondDate!, triggerSelectionDelegate: true, keepSelectionIfMultiSelectionAllowed: true)
-                rangeSelectionCallback(firstDate!, secondDate!)
-            }
-            else {
-                if cellState.selectionType! == .userInitiated || todayButtonPressed {
-                    todayButtonPressed = false
-                    firstDate = cellState.date
-                    secondDate = nil
-                    calendar.deselectAllDates()
-                }
-            }
+    func calendar(_ calendar: JTACMonthView, didHighlightDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
+        if cellState.selectionType != .userInitiated {
+            return
         }
-        configureCell(view: cell, cellState: cellState)
-        if cellState.selectionType! == .userInitiated {
-            if !Calendar.iso.isDate(date, equalTo: currentDate, toGranularity: .month) {
-                if date > currentDate {
-                    nextMonthChosen(nil)
-                }
-                else {
-                    previousMonthChosen(nil)
-                }
-            }
-        }
-        tableView.reloadData()
-    }
-    
-    func calendar(_ calendar: JTACMonthView, didDeselectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
-        switch(self.selectionMode) {
-        case .rangeSelection:
-            if cellState.selectionType! == .userInitiated || todayButtonPressed {
-                todayButtonPressed = false
-                firstDate = nil
-                secondDate = nil
-                calendar.deselectAllDates()
-                calendar.selectDates([cellState.date])
-            }
-            else {
-                configureCell(view: cell, cellState: cellState)
-            }
-        case .singleSelection:
-            configureCell(view: cell, cellState: cellState)
-        }
+        dateTapped(date: date)
     }
     
     func calendar(_ calendar: JTACMonthView, willDisplay cell: JTACDayCell, forItemAt date: Date, cellState: CellState, indexPath: IndexPath) {

@@ -43,6 +43,7 @@ extension Calendar {
 }
 
 extension Date {
+    
     var startOfWeek: Date {
         return Calendar.iso.date(from: Calendar.iso.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self))!
     }

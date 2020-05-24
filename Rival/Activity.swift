@@ -164,7 +164,12 @@ open class Activity: Codable {
         }
         
         if ignoreZeros {
-            entries.removeAll(where: {$0.y == 0})
+            for i in stride(from: entries.count - 1, through: 0, by: -1) {
+                if entries[i].y == 0 {
+                    entries.remove(at: i)
+                    labels.remove(at: i)
+                }
+            }
             for (index, entry) in entries.enumerated() {
                 entry.x = Double(index)
             }

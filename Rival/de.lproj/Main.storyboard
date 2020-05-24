@@ -468,25 +468,25 @@
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <pickerView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="UwX-gQ-CLz">
-                                                    <rect key="frame" x="194" y="0.0" width="200" height="90"/>
+                                                    <rect key="frame" x="214" y="0.0" width="180" height="90"/>
                                                     <constraints>
-                                                        <constraint firstAttribute="width" constant="200" id="UJP-9y-MkC"/>
+                                                        <constraint firstAttribute="width" constant="180" id="UJP-9y-MkC"/>
                                                     </constraints>
                                                 </pickerView>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Messmethode" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LXB-Dv-8ck">
-                                                    <rect key="frame" x="20" y="11" width="174" height="68"/>
+                                                    <rect key="frame" x="20" y="11" width="184" height="68"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="25"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                             </subviews>
                                             <constraints>
-                                                <constraint firstAttribute="bottomMargin" secondItem="LXB-Dv-8ck" secondAttribute="bottom" id="0SN-X7-oJd"/>
+                                                <constraint firstItem="LXB-Dv-8ck" firstAttribute="top" secondItem="uha-Nq-FLh" secondAttribute="topMargin" id="0TC-oa-WML"/>
                                                 <constraint firstAttribute="bottom" secondItem="UwX-gQ-CLz" secondAttribute="bottom" id="1lf-ar-CVu"/>
-                                                <constraint firstItem="LXB-Dv-8ck" firstAttribute="top" secondItem="uha-Nq-FLh" secondAttribute="topMargin" id="3s8-2G-XfI"/>
-                                                <constraint firstItem="UwX-gQ-CLz" firstAttribute="leading" secondItem="LXB-Dv-8ck" secondAttribute="trailing" id="5ay-0t-6Wm"/>
                                                 <constraint firstItem="UwX-gQ-CLz" firstAttribute="top" secondItem="uha-Nq-FLh" secondAttribute="top" id="5sx-T2-2RA"/>
-                                                <constraint firstItem="LXB-Dv-8ck" firstAttribute="leading" secondItem="uha-Nq-FLh" secondAttribute="leadingMargin" id="V5k-wK-BuN"/>
+                                                <constraint firstItem="LXB-Dv-8ck" firstAttribute="leading" secondItem="uha-Nq-FLh" secondAttribute="leadingMargin" id="Edc-8l-KGL"/>
+                                                <constraint firstItem="LXB-Dv-8ck" firstAttribute="bottom" secondItem="uha-Nq-FLh" secondAttribute="bottomMargin" id="PvN-s1-UFj"/>
+                                                <constraint firstItem="UwX-gQ-CLz" firstAttribute="leading" secondItem="LXB-Dv-8ck" secondAttribute="trailing" constant="10" id="nAZ-Oh-O0B"/>
                                                 <constraint firstAttribute="trailing" secondItem="UwX-gQ-CLz" secondAttribute="trailing" constant="20" id="wg2-Yx-Zpz"/>
                                             </constraints>
                                         </tableViewCellContentView>
@@ -838,7 +838,7 @@
                             </connections>
                         </barButtonItem>
                         <button key="titleView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="fbM-Ek-Iv1">
-                            <rect key="frame" x="184" y="7" width="78" height="30"/>
+                            <rect key="frame" x="168" y="7" width="78" height="30"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             <state key="normal" title="Zeitbereich"/>
                             <connections>
