@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import os.log
 import UIKit
 
 extension URL {
@@ -173,6 +172,7 @@ class Filesystem {
         while let url = enumerator?.nextObject() as? URL {
             if let id = url.id {
                 let activity = try! Serialization.load(Activity.self, with: decoder, from: url)
+                activity.saved = true
                 activities[id] = activity
             }
         }
@@ -181,6 +181,7 @@ class Filesystem {
     func saveActivitiesToArchiveURL() {
         for activity in activities.values {
             if !activity.saved {
+                print("Saving \(activity.name)")
                 try! Serialization.save(activity, with: encoder, to: activitiesArchiveURL.appendingPathComponent(activity.id.uuidString))
                 activity.saved = true
             }
@@ -246,7 +247,7 @@ class Filesystem {
             throw FilesystemError.cannotRename("Der Name darf nicht leer sein.")
         }
         for a in current.activities {
-            if a.value.id != activity.id && a.value.name == name {
+            if !(a.value === activity) && a.value.name == name {
                 throw FilesystemError.cannotRename("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
             }
         }
@@ -262,7 +263,6 @@ class Filesystem {
         }
         current.activities[name] = activity
         activities[activity.id] = activity
-        saveActivitiesToArchiveURL()
     }
     
     func deleteActivity(_ name: String) {
@@ -273,7 +273,6 @@ class Filesystem {
         if manager.fileExists(atPath: urlToRemove.path) {
             try! manager.removeItem(at: urlToRemove)
         }
-        saveActivitiesToArchiveURL()
     }
     
     func moveActivity(_ activity: Activity, from srcURL: URL, to dstURL: URL) throws {
@@ -284,7 +283,20 @@ class Filesystem {
         }
         sourceFolder.activities[activity.name] = nil
         destinationFolder.activities[activity.name] = activity
-        saveActivitiesToArchiveURL()
+    }
+    
+    func renameFolder(_ folder: Folder, name: String) throws {
+        guard let parent = folder.parent else {
+            throw FilesystemError.cannotRename("Die Dateisystembasis kann nicht umbenannt werden.")
+        }
+        for f in parent.folders {
+            if !(f.value === folder) && f.value.name == name {
+                throw FilesystemError.cannotRename("\"\(parent.url.path)\" enthält bereits einen Ordner mit dem Namen \"\(name)\"")
+            }
+        }
+        parent.folders[folder.name] = nil
+        folder.name = name
+        parent.folders[name] = folder
     }
     
     func createFolder(_ name: String) throws  {
@@ -292,7 +304,6 @@ class Filesystem {
             throw FilesystemError.cannotCreate("Es gibt bereits einen Ordner mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
         }
         current.folders[name] = Folder(name, parent: current)
-        saveToArchiveURL()
     }
     
     func deleteFolder(_ name: String) throws {
@@ -314,7 +325,6 @@ class Filesystem {
             f.value.parent = parent
         }
         parent.folders[name] = nil
-        saveToArchiveURL()
     }
     
     func moveFolder(from srcURL: URL, to dstURL: URL) throws {

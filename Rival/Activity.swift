@@ -128,7 +128,7 @@ open class Activity: Codable {
         var entries: [ChartDataEntry] = []
         var labels: [String] = []
         let start: Date
-        let end: Date
+        var end: Date
         let formatter: ((Date) -> String)
         switch (granularity) {
         case .day:
@@ -150,6 +150,8 @@ open class Activity: Codable {
         default:
             fatalError()
         }
+        //Because a while loop is used, the end date would normally be excluded
+        end.addDays(days: 1)
         var current = start
         var currentNumber = -1
         while !Calendar.iso.isDate(current, equalTo: end, toGranularity: .day) {
@@ -197,6 +199,7 @@ open class Activity: Codable {
         set(22, 0)
         set(23, 45)
         set(24, 26)
+        set(23, 29)
         self[DateFormats.shortYear.date(from: "23.04.20")!].measurement = 26*60+8
         self[DateFormats.shortYear.date(from: "26.04.20")!].measurement = 24*60+31
         self[DateFormats.shortYear.date(from: "28.04.20")!].measurement = 25*60+35

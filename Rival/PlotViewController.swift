@@ -99,6 +99,11 @@ class PlotViewController: UIViewController {
         }
         
         let (set, labels, yTitle) = self.generatePlotInformation(from: activity)
+        if labels.isEmpty {
+            lineChartView.data = nil
+            lineChartView.noDataText = "Keine Daten verfügbar"
+            return
+        }
 
         xAxis.valueFormatter = IndexAxisValueFormatter(values: labels)
         xAxis.granularity = 1
@@ -106,7 +111,7 @@ class PlotViewController: UIViewController {
         lineChartView.rightAxis.enabled = false
         
         var position = MyYAxisRenderer.Position.top
-        if set.entries[0].y > set.yMax / 2 {
+        if set.entries[0].y-set.yMin > (set.yMax-set.yMin) / 2 {
             position = .bottom
         }
         if toPlot!.measurementMethod == .yesNo {
@@ -172,6 +177,9 @@ class PlotViewController: UIViewController {
     
     private func generatePlotInformation(from activity: Activity) -> (set: LineChartDataSet, labels: [String], yTitle: String) {
         let (entries, labels) = activity.createDataEntries(from: self.startDate, to: self.endDate, granularity: self.selectedGranularity, ignoreZeros: ignoreZeros)
+        guard !entries.isEmpty else {
+            return (LineChartDataSet(entries), labels, "")
+        }
         let title: String
         let maximum = entries.max(by: {$0.y < $1.y})!.y
         timeMultiplicationFactor = 1.0

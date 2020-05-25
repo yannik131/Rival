@@ -10,7 +10,7 @@ import UIKit
 import Foundation
 import os.log
 
-class ExplorerTableViewController: UITableViewController {
+class ExplorerTableViewController: UITableViewController{
     
     //MARK: - Properties
     
@@ -61,6 +61,21 @@ class ExplorerTableViewController: UITableViewController {
         }
     }
     
+    @objc private func editButtonTapped() {
+        tableView.setEditing(!tableView.isEditing, animated: true)
+        if tableView.isEditing {
+            editButtonItem.title = "Fertig"
+        }
+        else {
+            editButtonItem.title = "Bearbeiten"
+        }
+        for index in 0..<filesystem.current.folders.count {
+            if let cell = tableView.cellForRow(at: IndexPath(row: index, section: 0)) as? FolderTableViewCell {
+                cell.nameTextField.isEnabled = tableView.isEditing
+            }
+        }
+    }
+    
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -89,6 +104,7 @@ class ExplorerTableViewController: UITableViewController {
                 fatalError()
             }
             cell.folder = folder
+            cell.errorDelegate = self
             //TODO: Last modified?
             return cell
         }
@@ -110,11 +126,8 @@ class ExplorerTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
-        if tableView.isEditing {
-            if indexPath.row < filesystem.count {
-                
-                return .delete
-            }
+        if indexPath.row < filesystem.count && tableView.isEditing {
+            return .delete
         }
         return .none
     }
@@ -190,6 +203,7 @@ class ExplorerTableViewController: UITableViewController {
         let leftArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.left")!, style: .plain, target: self, action: #selector(self.previousDateButtonTapped(_:)))
         leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
+        editButtonItem.action = #selector(editButtonTapped)
         let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
         rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
@@ -278,5 +292,11 @@ class ExplorerTableViewController: UITableViewController {
         catch {
             presentErrorAlert(presentingViewController: self, error: error)
         }
+    }
+}
+
+extension ExplorerTableViewController: FilesystemErrorDelegate {
+    func throwError(_ error: Error) {
+        presentErrorAlert(presentingViewController: self, error: error)
     }
 }

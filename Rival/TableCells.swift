@@ -8,27 +8,55 @@
 
 import UIKit
 
-class FolderTableViewCell: UITableViewCell {
+protocol FilesystemErrorDelegate {
+    func throwError(_ error: Error)
+}
+
+class FolderTableViewCell: UITableViewCell, UITextFieldDelegate {
     
     //MARK: - Properties
     
-    @IBOutlet weak var folderName: UILabel!
+    @IBOutlet weak var nameTextField: UITextField!
     @IBOutlet weak var folderImageView: UIImageView!
+    var errorDelegate: FilesystemErrorDelegate?
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        nameTextField.delegate = self
+        nameTextField.isEnabled = false
+    }
     
     var folder: Folder! {
         didSet {
             if folder == nil {
                 folderImageView.isHidden = true
-                folderName.text = nil
+                nameTextField.text = nil
                 return
             }
             else {
-                folderName.text = folder.name
+                nameTextField.text = folder.name
                 folderImageView.isHidden = false
                 if folderImageView.image == nil {
                     folderImageView.image = UIImage(systemName: "folder")
                 }
             }
+        }
+    }
+    
+    //MARK: - UITextFieldDelegate
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        do {
+            try Filesystem.shared.renameFolder(folder, name: textField.text!)
+        }
+        catch {
+            errorDelegate?.throwError(error)
+            textField.text = folder.name
         }
     }
 }

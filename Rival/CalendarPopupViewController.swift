@@ -93,7 +93,6 @@ class CalendarViewController: UIViewController {
     }
     
     @IBAction func todayChosen(_ sender: UIBarButtonItem) {
-        print("first: \(firstDate?.dateString()), second: \(secondDate?.dateString()), today: \(Date().dateString())")
         dateTapped(date: Date())
         scroll()
     }
@@ -134,23 +133,22 @@ class CalendarViewController: UIViewController {
     }
     
     private func handleCellSelected(cell: DateCell, cellState: CellState) {
-        let date = cellState.date
-        if firstDate?.dateString() == date.dateString() && secondDate == nil {
+        if cellState.isSelected {
             cell.selectedView.backgroundColor = UIColor.blue
-            return
         }
-        else if let first = firstDate, let second = secondDate {
-            if iso.startOfDay(for: date) >= iso.startOfDay(for: first) && iso.startOfDay(for: date) <= iso.startOfDay(for: second) {
-                cell.selectedView.backgroundColor = UIColor.blue
-                return
-            }
+        else {
+            cell.selectedView.backgroundColor = UIColor.clear
         }
-        
-        cell.selectedView.backgroundColor = UIColor.clear
     }
     
-    private func refreshCurrentMonth() {
-        
+    private func selectDates() {
+        calendar.deselectAllDates()
+        if firstDate != nil && secondDate == nil {
+            calendar.selectDates([firstDate!])
+        }
+        else if firstDate != nil && secondDate != nil {
+            calendar.selectDates(from: firstDate!, to: secondDate!)
+        }
     }
     
     private func dateTapped(date: Date) {
@@ -179,24 +177,10 @@ class CalendarViewController: UIViewController {
         }
         tableView.reloadData()
         
-        if !Calendar.iso.isDate(date, equalTo: currentDate, toGranularity: .month) {
-            if date > currentDate {
-                nextMonthChosen(nil)
-            }
-            else {
-                previousMonthChosen(nil)
-            }
-        }
-        for cell in calendar.visibleCells {
-            let cell = cell as? DateCell
-            var dates: [Date] = []
-            var start = currentDate.startOfMonth
-            while start.dateString() != currentDate.endOfMonth.dateString() {
-                dates.append(start)
-                start.addDays(days: 1)
-            }
-            calendar.reloadDates(dates)
-        }
+        currentDate = date
+        scroll()
+        
+        selectDates()
     }
 }
 
@@ -213,6 +197,33 @@ extension CalendarViewController: JTACMonthViewDataSource {
 }
 
 extension CalendarViewController: JTACMonthViewDelegate {
+    
+    func calendar(_ calendar: JTACMonthView, didHighlightDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
+        dateTapped(date: date)
+    }
+    
+    func calendar(_ calendar: JTACMonthView, shouldSelectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) -> Bool {
+        if cellState.selectionType != .programatic {
+            return false
+        }
+        return true
+    }
+    
+    func calendar(_ calendar: JTACMonthView, shouldDeselectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) -> Bool {
+        if cellState.selectionType != .programatic {
+            return false
+        }
+        return true
+    }
+    
+    func calendar(_ calendar: JTACMonthView, didSelectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
+        configureCell(view: cell, cellState: cellState)
+    }
+    
+    func calendar(_ calendar: JTACMonthView, didDeselectDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
+        configureCell(view: cell, cellState: cellState)
+    }
+    
     func calendar(_ calendar: JTACMonthView, headerViewForDateRange range: (start: Date, end: Date), at indexPath: IndexPath) -> JTACMonthReusableView {
         let header = calendar.dequeueReusableJTAppleSupplementaryView(withReuseIdentifier: "DateHeader", for: indexPath) as! DateHeader
         header.monthTitle.text = DateFormats.monthYearFull.string(from: range.start)
@@ -233,13 +244,6 @@ extension CalendarViewController: JTACMonthViewDelegate {
     
     func calendarSizeForMonths(_ calendar: JTACMonthView?) -> MonthSize? {
         return MonthSize(defaultSize: 60)
-    }
-    
-    func calendar(_ calendar: JTACMonthView, didHighlightDate date: Date, cell: JTACDayCell?, cellState: CellState, indexPath: IndexPath) {
-        if cellState.selectionType != .userInitiated {
-            return
-        }
-        dateTapped(date: date)
     }
     
     func calendar(_ calendar: JTACMonthView, willDisplay cell: JTACDayCell, forItemAt date: Date, cellState: CellState, indexPath: IndexPath) {
