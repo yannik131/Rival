@@ -7,41 +7,44 @@
 //
 
 import Foundation
-import os.log
 import Charts
 
-open class Activity: Codable {
+class Activity: Codable {
     
     // MARK: - Properties
-    
+    //TODO: All of this is serialized when one thing changes, maybe store measurements and comments in separate files?
     var name: String {
+        didSet {
+            saved = false
+        }
+    }
+    var unit: String {
+        didSet {
+            saved = false
+        }
+    }
+    var measurements: [String:Double] = [:] {
+        didSet {
+            saved = false
+        }
+    }
+    var comments: [String:String] = [:] {
         didSet {
             saved = false
         }
     }
     let measurementMethod: MeasurementMethod
     let attachmentType: AttachmentType
-    var unit: String
-    public var saved: Bool
-    private var dayData = [String:DailyContent]() {
-        didSet {
-            saved = false
-        }
-    }
+    var saved: Bool
     let id: UUID
     
     //MARK: - Initialization
     
-    init?(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none, id: UUID? = nil) {
+    init?(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none) {
         guard !name.isEmpty || !(measurementMethod == .doubleWithUnit && unit.isEmpty) else {
             return nil
         }
-        if let id = id {
-            self.id = id
-        }
-        else {
-            self.id = UUID()
-        }
+        id = UUID()
         self.attachmentType = attachmentType
         self.name = name
         self.measurementMethod = measurementMethod
@@ -54,19 +57,12 @@ open class Activity: Codable {
     
     //MARK: - Types
     
-    struct DailyContent: Codable {
-        var measurement: Double = 0
-        var comment: String = ""
-        var photo: Data? = nil
-        var audio: Data? = nil
-        var video: Data? = nil
-    }
-    
     enum MeasurementMethod: String, CaseIterable, Codable {
         case yesNo //Yes, I played piano today.
         case time //I played guitar for 25 minutes.
         case doubleWithUnit //I ran 3.2 kilometers.
         case intWithoutUnit //I did 25 pushups.
+        //TODO: case GPSkm, case syncWithStepCounter, use other sensors
     }
     
     enum AttachmentType: String, CaseIterable, Codable {
@@ -78,27 +74,20 @@ open class Activity: Codable {
     
     //MARK: - Public Methods
     
-    subscript(date: Date) -> DailyContent {
+    ///Because activity.measurements[date.dateString()] is the most frequently accessed attribute, this subscript shortens the whole thing to activity[date]
+    subscript(date: Date) -> Double {
         get {
-            let dateString = date.dateString()
-            if self.dayData[dateString] == nil {
-                self.dayData[dateString] = DailyContent()
-            }
-            return self.dayData[dateString]!
+            return measurements[date.dateString(), default: 0]
         }
         set {
-            let dateString = date.dateString()
-            if self.dayData[dateString] == nil {
-                self.dayData[dateString] = DailyContent()
-            }
-            self.dayData[dateString] = newValue
+            measurements[date.dateString()] = newValue
         }
     }
     
-    func getPracticeAmountString(date: Date! = nil, measurement: Double! = nil) -> String {
+    func measurementToString(date: Date! = nil, measurement: Double! = nil) -> String {
         var measurement: Double! = measurement
         if measurement == nil {
-            measurement = self[date].measurement
+            measurement = self[date]
         }
         
         switch(self.measurementMethod) {
@@ -150,7 +139,7 @@ open class Activity: Codable {
         default:
             fatalError()
         }
-        //Because a while loop is used, the end date would normally be excluded
+        //Because a while loop is used, the end date would  be excluded without this
         end.addDays(days: 1)
         var current = start
         var currentNumber = -1
@@ -161,7 +150,7 @@ open class Activity: Codable {
                 entries.append(ChartDataEntry(x: Double(entries.count), y: 0.0))
                 labels.append(formatter(current))
             }
-            entries.last!.y += self[current].measurement
+            entries.last!.y += measurements[current.dateString(), default: 0]
             current.addDays(days: 1)
         }
         
@@ -182,12 +171,13 @@ open class Activity: Codable {
     
     //MARK: - Private Methods
     
+    //MARK: Sample data for debug purposes
     private func set(_ min: Double, _ sec: Double) {
-        self[start].measurement = min * 60 + sec
+        measurements[start.dateString()] = min * 60 + sec
         start.addDays(days: 2)
     }
     
-    func fillWithTimeData() {
+    private func fillWithTimeData() {
         set(24, 24)
         set(24, 52)
         set(25, 46)
@@ -200,9 +190,11 @@ open class Activity: Codable {
         set(23, 45)
         set(24, 26)
         set(23, 29)
-        self[DateFormats.shortYear.date(from: "23.04.20")!].measurement = 26*60+8
-        self[DateFormats.shortYear.date(from: "26.04.20")!].measurement = 24*60+31
-        self[DateFormats.shortYear.date(from: "28.04.20")!].measurement = 25*60+35
+        set(22, 58)
+        set(23, 36)
+        self[DateFormats.shortYear.date(from: "23.04.20")!] = 26*60+8
+        self[DateFormats.shortYear.date(from: "26.04.20")!] = 24*60+31
+        self[DateFormats.shortYear.date(from: "28.04.20")!] = 25*60+35
         saved = false
     }
 }

@@ -7,6 +7,12 @@
 //
 
 import UIKit
+//AVPlayer
+import AVFoundation
+//kuTTypeMovie
+import MobileCoreServices
+//AVPlayerViewController
+import AVKit
 
 class ActivityDetailTableViewController: UITableViewController, UITextFieldDelegate, UITextViewDelegate, DoneButton {
     
@@ -23,9 +29,9 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     @IBOutlet weak var dateButton: UIButton!
     @IBOutlet weak var addButton: UIBarButtonItem!
     @IBOutlet weak var moveButton: UIButton!
-    @IBOutlet weak var attachmentAccessButton: UIButton!
-    @IBOutlet weak var attachmentModifyButton: UIButton!
-    
+    @IBOutlet weak var createButton: UIButton!
+    @IBOutlet weak var playButton: UIButton!
+    @IBOutlet weak var attachmentLabel: UILabel!
     
     var activity: Activity!
     var selectDateCallback: ((Date) -> ())!
@@ -35,15 +41,17 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
                 view.chosenDate = self.chosenDate
                 self.setDateButtonDate()
                 self.updateButtonStates()
-                self.commentTextView.text = self.activity[self.chosenDate].comment
+                self.commentTextView.text = activity.comments[chosenDate.dateString()]
                 self.selectDateCallback(self.chosenDate)
             }
+            mediaStore.date = chosenDate
         }
     }
     var backButton: UIBarButtonItem!
     let filesystem = Filesystem.shared
     var stopWatch: StopWatch!
     var timer: Timer! = nil
+    var mediaStore = MediaStore.shared
     
     //MARK: - Initialization
     
@@ -56,7 +64,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
                     return
                 }
                 self.stopWatch.update()
-                self.activity[self.chosenDate].measurement = self.stopWatch.elapsedTime
+                self.activity[self.chosenDate] = self.stopWatch.elapsedTime
                 self.quantityView.setTimePickerSeconds(Int(self.stopWatch.elapsedTime), animated: true)
             }
         }
@@ -70,7 +78,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             self.unitTextField.backgroundColor = UIColor.systemGray6
         }
         self.activityNameTextField.text = self.activity.name
-        self.commentTextView.text = self.activity[self.chosenDate].comment
+        self.commentTextView.text = self.activity.comments[chosenDate.dateString()]
         self.commentTextView.layer.borderWidth = 1
         self.commentTextView.layer.cornerRadius = 10
         addDoneButton(parentView: self, to: commentTextView)
@@ -78,6 +86,27 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.updateButtonStates()
         self.updatePath()
         createDateButtons()
+        mediaStore.delegate = self
+        mediaStore.activity = activity
+        mediaStore.date = chosenDate
+        createButton.createBorder()
+        playButton.createBorder()
+        switch(activity.attachmentType) {
+        case .audio:
+            mediaStore.assignAudioButtons(recordButton: createButton, playButton: playButton)
+            attachmentLabel.text = "Audio"
+        case .photo:
+            mediaStore.assignPhotoButtons(recordButton: createButton, seeButton: playButton)
+            attachmentLabel.text = "Foto"
+        case .video:
+            mediaStore.assignVideoButtons(recordButton: createButton, watchButton: playButton)
+            attachmentLabel.text = "Video"
+        case .none:
+            attachmentLabel.text = "Anlage"
+            attachmentLabel.tintColor = UIColor.systemGray3
+            createButton.isHidden = true
+            playButton.isHidden = true
+        }
     }
     
     //MARK: - Private Methods
@@ -113,8 +142,6 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         middleButton.createBorder()
         rightButton.createBorder()
         moveButton.createBorder()
-        attachmentModifyButton.createBorder()
-        attachmentAccessButton.createBorder()
         if activity.measurementMethod == .time {
             leftButton.setTitle("Läuft..", for: .selected)
             leftButton.addTarget(self, action: #selector(startTimer), for: .touchUpInside)
@@ -170,25 +197,24 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.quantityView.setUpView(activity: self.activity, date: self.chosenDate)
         self.setDateButtonDate()
         self.navigationItem.title = self.chosenDate.dateString()
-        attachmentModifyButton.setTitle("Aufnehmen", for: .normal)
-        switch(activity.attachmentType) {
-        case .audio:
-            attachmentAccessButton.setTitle("Abspielen", for: .normal)
-        case .photo:
-            attachmentAccessButton.setTitle("Ansehen", for: .normal)
-        case .video:
-            attachmentAccessButton.setTitle("Anschauen", for: .normal)
-        case .none:
-            break
-        }
-        if activity.attachmentType == .none {
-            attachmentModifyButton.isHidden = true
-            attachmentAccessButton.isHidden = true
-        }
-        else {
-            attachmentModifyButton.isHidden = false
-            attachmentAccessButton.isHidden = false
-        }
+    }
+    
+    //MARK: - AVAudioRecorderDelegate
+    
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        mediaStore.audioRecorderDidFinishRecording(recorder, successfully: flag)
+    }
+    
+    //MARK: - AVAudioPlayerDelegate
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        mediaStore.audioPlayerDidFinishPlaying(player, successfully: flag)
+    }
+    
+    //MARK: - UIImagePickerControllerDelegate
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        mediaStore.imagePickerController(picker, didFinishPickingMediaWithInfo: info)
     }
     
     //MARK: - Actions
@@ -197,30 +223,32 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.chosenDate = Date()
     }
     
-    @IBAction func addAttachmentButtonTapped(_ sender: UIButton) {
-        
-    }
-    
     @objc func addOne() {
-        activity[chosenDate].measurement += 1
+        activity[chosenDate] += 1
         quantityView.update(for: chosenDate)
     }
     
     @objc func substractOne() {
-        let measurement = activity[chosenDate].measurement
+        let measurement = activity[chosenDate]
         if measurement > 0 {
-            activity[chosenDate].measurement -= 1
+            activity[chosenDate] -= 1
         }
         quantityView.update(for: chosenDate)
     }
     
     @objc func reset() {
-        activity[chosenDate].measurement = 0
+        activity[chosenDate] = 0
         quantityView.update(for: chosenDate)
     }
     
     @objc private func back(_ sender: UIBarButtonItem) {
         if let owningNavigationController = self.navigationController {
+            if let recorder = mediaStore.audioRecorder {
+                if recorder.isRecording {
+                    presentErrorAlert(presentingViewController: self, title: "Aufnahme läuft noch", message: "Bitte beende zuerst die Aufnahme bevor du wieder irgendwohin verschwindest.")
+                    return
+                }
+            }
             owningNavigationController.popViewController(animated: false)
         }
     }
@@ -254,29 +282,38 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         //super.prepare(for: segue, sender: sender)
-        let navigationController = segue.destination as! UINavigationController
+        let navigationController = segue.destination as? UINavigationController
         switch(segue.identifier ?? "") {
         case "DateSelection":
-            let destinationViewController = navigationController.topViewController as! CalendarViewController
+            let destinationViewController = navigationController!.topViewController as! CalendarViewController
             destinationViewController.singleSelectionCallback = {(date: Date) in self.chosenDate = date}
             destinationViewController.firstDate = self.chosenDate
             destinationViewController.activity = activity
         case "MoveActivity":
-            let destinationViewController = navigationController.topViewController as! FolderTableViewController
+            let destinationViewController = navigationController!.topViewController as! FolderTableViewController
             destinationViewController.mode = .moveActivity
             destinationViewController.activityToMove = activity
             destinationViewController.moveCallback = {
                 self.updatePath()
             }
+        case "PresentImage":
+            break
         default:
             fatalError()
         }
     }
     
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
+        if identifier == "PresentImage" && activity.attachmentType != .photo {
+            return false
+        }
+        return true
+    }
+    
     //MARK: - UITextViewDelegate
     
     func textViewDidChange(_ textView: UITextView) {
-        self.activity[self.chosenDate].comment = textView.text
+        self.activity.comments[chosenDate.dateString()] = textView.text
     }
     
     func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
@@ -307,7 +344,6 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         }
     }
     
-
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -322,5 +358,11 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     
     @objc func doneCallback() {
         commentTextView.resignFirstResponder()
+    }
+}
+
+extension ActivityDetailTableViewController: MediaDelegate {
+    func throwError(_ error: Error) {
+        presentErrorAlert(presentingViewController: self, error: error)
     }
 }

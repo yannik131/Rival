@@ -2,6 +2,7 @@
  
 //MARK: - Code
  
+ TODO: appendingPathComponent should always have the isDirectory flag given to avoid superfluous disk access
  TODO: Be careful with Calendar.gregorian/Calendar.current and firstWeekday = 2
  TODO: Replace pickers with pop-up tableViews
  TODO: isFirstOrSecond is just stupid, rtfm
@@ -73,4 +74,54 @@
  
  
 //MARK: - Delegates
+ */
+
+//AVPlayer (Video) and AVAudioPlayer (Audio) take URLS instead of Bytestreams. I'm not sure if its feasible to load whole videos to the ram just to avoid reloading them. For now, everything is loaded live from the disk. For Audio and Video, named pipes would be the way to go: https://stackoverflow.com/questions/48229690/how-to-open-data-instead-standart-url-in-avplayer
+/*
+ func setupNamedPipe(withData data: Data) -> URL?
+ {
+     // Build a URL for a named pipe in the documents directory
+     let fifoBaseName = "avpipe"
+     let fifoUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).last!.appendingPathComponent(fifoBaseName)
+
+     // Ensure there aren't any remnants of the fifo from a previous run
+     unlink(fifoUrl.path)
+
+     // Create the FIFO pipe
+     if mkfifo(fifoUrl.path, 0o666) != 0
+     {
+         print("Failed to create named pipe")
+         return nil
+     }
+
+     // Run the code to manage the pipe on a dispatch queue
+     DispatchQueue.global().async
+     {
+         print("Waiting for somebody to read...")
+         let fd = open(fifoUrl.path, O_WRONLY)
+         if fd != -1
+         {
+             print("Somebody is trying to read, writing data on the pipe")
+             data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> Void in
+                 let num = write(fd, bytes, data.count)
+                 if num != data.count
+                 {
+                     print("Write error")
+                 }
+             }
+
+             print("Closing the write side of the pipe")
+             close(fd)
+         }
+         else
+         {
+             print("Failed to open named pipe for write")
+         }
+
+         print("Cleaning up the named pipe")
+         unlink(fifoUrl.path)
+     }
+
+     return fifoUrl
+ }
  */

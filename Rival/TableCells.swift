@@ -8,7 +8,7 @@
 
 import UIKit
 
-protocol FilesystemErrorDelegate {
+protocol FilesystemErrorDelegate: UIViewController {
     func throwError(_ error: Error)
 }
 
@@ -73,7 +73,7 @@ class ActivityTableViewCell: UITableViewCell {
     
     func setDisplayedDate(date: Date) {
         activityNameLabel.text = activity.name
-        practiceAmountLabel.text = activity.getPracticeAmountString(date: date)
+        practiceAmountLabel.text = activity.measurementToString(date: date)
         if let stopWatch = StopWatchStore[activity.id] {
             if stopWatch.isRunning && stopWatch.startStamp!.isToday() {
                 practiceAmountLabel.text! += "..."

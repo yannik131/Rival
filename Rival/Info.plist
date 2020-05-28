@@ -60,5 +60,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Diese App nimmt Bilder von dir im Badezimmer auf und lädt sich bei Facebook hoch.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Wir hören immer zu. Sei vorsichtig, was du sagst.</string>
 </dict>
 </plist>

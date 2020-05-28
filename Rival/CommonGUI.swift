@@ -32,6 +32,28 @@ public func presentErrorAlert(presentingViewController: UIViewController, error:
         }
         //TODO: Find out if its possible to get the string from an error enum so that 4x message = msg is not necessary
     }
+    else if let error = error as? MediaError {
+        switch(error) {
+        case .PlayAudioError(let msg):
+            title = "Audio abspielen nicht möglich"
+            message = msg
+        case .RecordAudioError(let msg):
+            title = "Audio aufnehmen nicht möglich"
+            message = msg
+        case .RecordPhotoError(let msg):
+            title = "Foto aufnehmen nicht möglich"
+            message = msg
+        case .RecordVideoError(let msg):
+            title = "Video aufnehmen nicht möglich"
+            message = msg
+        case .SeePhotoError(let msg):
+            title = "Foto ansehen nicht möglich"
+            message = msg
+        case .WatchVideoError(let msg):
+            title = "Video ansehen nicht möglich"
+            message = msg
+        }
+    }
     let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
     alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
     presentingViewController.present(alert, animated: true, completion: nil)
@@ -79,11 +101,17 @@ extension UIButton {
         self.layer.cornerRadius = 5
         self.layer.borderWidth = 1
         self.layer.borderColor = UIColor.systemBlue.cgColor
+        self.contentEdgeInsets = UIEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
     }
     
     public func disable() {
         isEnabled = false
-        tintColor = UIColor.systemGray6
+        tintColor = UIColor.systemGray3
+    }
+    
+    public func enable() {
+        isEnabled = true
+        tintColor = UIColor.systemBlue
     }
 }
 

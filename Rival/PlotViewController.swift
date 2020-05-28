@@ -160,17 +160,17 @@ class PlotViewController: UIViewController {
         var title = selectedPlotTitleState.rawValue + ": "
         switch(selectedPlotTitleState) {
         case .sum:
-            title += "\(toPlot!.getPracticeAmountString(measurement: sum))"
+            title += "\(toPlot!.measurementToString(measurement: sum))"
         case .average:
-            title += "\(toPlot!.getPracticeAmountString(measurement: sum/Double(set.entries.count)))"
+            title += "\(toPlot!.measurementToString(measurement: sum/Double(set.entries.count)))"
         case .median:
             let entries = set.entries.sorted(by: {$0.y < $1.y})
             let median = entries[Int(entries.count/2)].y*(1.0/timeMultiplicationFactor)
-            title += "\(toPlot!.getPracticeAmountString(measurement: median))"
+            title += "\(toPlot!.measurementToString(measurement: median))"
         case .min:
-            title += "\(toPlot!.getPracticeAmountString(measurement: set.yMin*(1.0/timeMultiplicationFactor)))"
+            title += "\(toPlot!.measurementToString(measurement: set.yMin*(1.0/timeMultiplicationFactor)))"
         case .max:
-            title += "\(toPlot!.getPracticeAmountString(measurement: set.yMax*(1.0/timeMultiplicationFactor)))"
+            title += "\(toPlot!.measurementToString(measurement: set.yMax*(1.0/timeMultiplicationFactor)))"
         }
         return title
     }

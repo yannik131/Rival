@@ -238,12 +238,6 @@ class ExplorerTableViewController: UITableViewController{
                 self.tableView.deleteRows(at: [IndexPath(row: previousRowCount-1-i, section: 0)], with: .none)
             }
         }
-        else {
-            //insert diff rows
-            for i in 0..<diff {
-                self.tableView.insertRows(at: [IndexPath(row: previousRowCount-1+i, section: 0)], with: .none)
-            }
-        }
         tableView.reloadData()
         updatePath()
     }
@@ -283,10 +277,10 @@ class ExplorerTableViewController: UITableViewController{
     private func loadSampleData() {
         do {
             if filesystem.count == 0 {
-                try filesystem.createActivity(name: "Gitarre üben", measurementMethod: .time)
-                try filesystem.createActivity(name: "Klavier spielen", measurementMethod: .yesNo)
-                try filesystem.createActivity(name: "Laufen", measurementMethod: .doubleWithUnit, unit: "km")
-                try filesystem.createActivity(name: "Liegestütze", measurementMethod: .intWithoutUnit)
+                try filesystem.createActivity(name: "Gitarre üben", measurementMethod: .time, attachmentType: .audio)
+                try filesystem.createActivity(name: "Klavier spielen", measurementMethod: .yesNo, attachmentType: .video)
+                try filesystem.createActivity(name: "5km Lauf", measurementMethod: .time, attachmentType: .photo)
+                try filesystem.createActivity(name: "Liegestütze", measurementMethod: .intWithoutUnit, attachmentType: .photo)
             }
         }
         catch {

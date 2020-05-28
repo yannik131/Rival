@@ -151,15 +151,15 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     public func update(for date: Date) {
         var view: UIView?
         if let yesNoSwitch = self.yesNoSwitch {
-            yesNoSwitch.isOn = self.activity[date].measurement != 0.0
+            yesNoSwitch.isOn = self.activity[date] != 0.0
             view = yesNoSwitch as UIView
         }
         else if let textField = self.doubleTextField {
-            textField.text = self.activity.getPracticeAmountString(date: date)
+            textField.text = self.activity.measurementToString(date: date)
             view = textField as UIView
         }
         else if let picker = self.picker {
-            self.setTimePickerSeconds(Int(self.activity[date].measurement))
+            self.setTimePickerSeconds(Int(self.activity[date]))
             view = picker as UIView
         }
         if let view = view {
@@ -177,7 +177,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     @objc func doneCallback() {
         self.endEditing(true)
         self.setPracticeAmount()
-        self.doubleTextField!.text = self.activity.getPracticeAmountString(date: self.chosenDate)
+        self.doubleTextField!.text = self.activity.measurementToString(date: self.chosenDate)
     }
     
     func setTimePickerSeconds(_ seconds: Int, animated: Bool = false) {
@@ -250,6 +250,6 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
             }
         }
         
-        self.activity[self.chosenDate].measurement = amount
+        self.activity[self.chosenDate] = amount
     }
 }

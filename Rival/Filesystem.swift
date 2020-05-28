@@ -171,9 +171,13 @@ class Filesystem {
         let enumerator = manager.enumerator(at: activitiesArchiveURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants], errorHandler: nil)
         while let url = enumerator?.nextObject() as? URL {
             if let id = url.id {
-                let activity = try! Serialization.load(Activity.self, with: decoder, from: url)
-                activity.saved = true
-                activities[id] = activity
+                if let activity = try? Serialization.load(Activity.self, with: decoder, from: url) {
+                    activity.saved = true
+                    activities[id] = activity
+                }
+                else {
+                    print("Could not load \(url.path)")
+                }
             }
         }
     }
@@ -261,6 +265,7 @@ class Filesystem {
         guard !current.activities.keys.contains(name) else {
             throw FilesystemError.cannotCreate("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
         }
+        try! manager.createDirectory(at: MediaStore.shared.getMediaArchiveURL(for: activity), withIntermediateDirectories: true, attributes: nil)
         current.activities[name] = activity
         activities[activity.id] = activity
     }
@@ -272,6 +277,10 @@ class Filesystem {
         let urlToRemove = url(of: activity)
         if manager.fileExists(atPath: urlToRemove.path) {
             try! manager.removeItem(at: urlToRemove)
+        }
+        let url = MediaStore.shared.getMediaArchiveURL(for: activity)
+        if manager.fileExists(atPath: url.path) {
+            try! manager.removeItem(at: url)
         }
     }
     

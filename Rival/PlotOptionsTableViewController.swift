@@ -32,6 +32,7 @@ class PlotOptionsTableViewController: UITableViewController {
         plotTitlePicker.selectRow(PlotTitleState.allCases.firstIndex(where: {$0 == selectedPlotTitleState})!, inComponent: 0, animated: true)
         ignoreZerosSwitch.isOn = ignoreZeros
         ignoreZerosSwitch.addTarget(self, action: #selector(ignoreZerosSwitchTapped), for: .touchUpInside)
+        ignoreZerosSwitch.onTintColor = UIColor(red: 0.1, green: 0.7, blue: 0.1, alpha: 1)
     }
     
     //MARK: - Actions

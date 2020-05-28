@@ -113,7 +113,7 @@ class CalendarViewController: UIViewController {
         }
         cell.dotView.backgroundColor = UIColor.clear
         if let activity = activity {
-            if activity[cellState.date].measurement != 0 {
+            if activity[cellState.date] != 0 {
                 cell.dotView.backgroundColor = UIColor.systemGray3
                 cell.dotView.layer.cornerRadius = 5
             }
@@ -284,11 +284,11 @@ extension CalendarViewController: UITableViewDataSource {
             activity = filesystem.current.orderedActivities[indexPath.row]
         }
         if firstDate != nil && secondDate == nil {
-            cell.textLabel?.text = activity!.name + ": " + activity!.getPracticeAmountString(date: firstDate!)
+            cell.textLabel?.text = activity!.name + ": " + activity!.measurementToString(date: firstDate!)
         }
         else if firstDate != nil && secondDate != nil {
             let sum = activity!.createDataEntries(from: firstDate!, to: secondDate!, granularity: .day, ignoreZeros: false).entries.reduce(0, {$0+$1.y})
-            cell.textLabel?.text = activity!.name + ": " + activity!.getPracticeAmountString(measurement: sum)
+            cell.textLabel?.text = activity!.name + ": " + activity!.measurementToString(measurement: sum)
         }
         cell.imageView?.image = determineActivityImage(for: activity!)
         return cell
