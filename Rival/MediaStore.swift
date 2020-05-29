@@ -56,7 +56,7 @@ class MediaStore {
             updateButtonTexts()
         }
     }
-    var mode: Activity.AttachmentType = .none //Used to determine the file extension
+    var mode: AttachmentType = .none //Used to determine the file extension
     var fileExtension: String {
         switch(mode) {
         case .audio:
@@ -91,7 +91,7 @@ class MediaStore {
     init() {
         let recordingSession = AVAudioSession.sharedInstance()
         do {
-            try recordingSession.setCategory(.record, mode: .default)
+            try recordingSession.setCategory(.playback, mode: .default)
             try recordingSession.setActive(true)
             recordingSession.requestRecordPermission() { allowed in
                 DispatchQueue.main.async {
@@ -128,7 +128,6 @@ class MediaStore {
     }
     
     @objc private func playAudioButtonTapped() {
-        print("Playbutton tapped")
         guard !(audioRecorder?.isRecording ?? false) else {
             delegate?.throwError(MediaError.PlayAudioError("Es wird gerade aufgenommen."))
             return
@@ -136,26 +135,12 @@ class MediaStore {
         //Doing this instead of .recordAndPlay solved a volume issue on my device
         try! recordingSession.setCategory(.playback)
         
-        if let player = audioPlayer {
-            if player.isPlaying {
-                player.stop()
-            }
-            audioPlayer = nil
+        let playerController = AVPlayerViewController()
+        let player = AVPlayer(url: mediaURL)
+        playerController.player = player
+        delegate?.present(playerController, animated: true) {
+            player.play()
         }
-        else {
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: mediaURL)
-                audioPlayer!.delegate = delegate
-                audioPlayer!.volume = 0
-                audioPlayer!.prepareToPlay()
-                audioPlayer!.play()
-                audioPlayer!.setVolume(1, fadeDuration: TimeInterval(exactly: 0.5)!)
-            }
-            catch {
-                delegate?.throwError(MediaError.PlayAudioError("Unbekannter Fehler: \(error.localizedDescription)"))
-            }
-        }
-        updateButtonTexts()
     }
     
     private func startRecording() {
@@ -188,6 +173,7 @@ class MediaStore {
         audioRecorder.stop()
         audioRecorder = nil
         updateButtonTexts()
+        try! recordingSession.setCategory(.playback)
     }
     
     //MARK: - AVAudioPlayerDelegate
@@ -234,8 +220,12 @@ class MediaStore {
             try! data.write(to: mediaURL)
         }
         else if let movieURL = info[.mediaURL] as? URL {
+            if FileManager.default.fileExists(atPath: mediaURL.path) {
+                try! FileManager.default.removeItem(at: mediaURL)
+            }
             try! FileManager.default.copyItem(at: movieURL, to: mediaURL)
         }
+        print("Media size: \(((try? manager.attributesOfItem(atPath: mediaURL.path))?[.size] as? Double ?? 0) / 1024.0 / 1024.0) MiB")
         delegate?.dismiss(animated: true, completion: nil)
         updateButtonTexts()
     }

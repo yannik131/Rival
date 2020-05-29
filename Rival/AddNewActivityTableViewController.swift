@@ -21,8 +21,8 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     @IBOutlet weak var saveButton: UIBarButtonItem!
     @IBOutlet weak var navigationBar: UINavigationItem!
     
-    var selectedMeasurementMethod = Activity.MeasurementMethod.allCases[0]
-    var selectedAttachmentType = Activity.AttachmentType.allCases[0]
+    var selectedMeasurementMethod = MeasurementMethod.allCases[0]
+    var selectedAttachmentType = AttachmentType.allCases[0]
     let numberOfSettingsCells = 6
     let filesystem = Filesystem.shared
     var completionCallback: (() -> Void)!
@@ -37,6 +37,7 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
         self.attachmentTypePicker.dataSource = self
         self.nameTextField.delegate = self
         self.unitTextField.delegate = self
+        nameTextField.clearButtonMode = .whileEditing
         self.folderSwitch.isOn = false
         self.folderSwitch.onTintColor = UIColor(red: 0.1, green: 0.7, blue: 0.1, alpha: 1)
         self.folderSwitch.addTarget(self, action: #selector(self.folderSwitchTapped), for: .allTouchEvents)
@@ -52,16 +53,16 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         if pickerView == self.measurementTypePicker {
-            return Activity.MeasurementMethod.allCases.count
+            return MeasurementMethod.allCases.count
         }
         else { //attachmentTypePicker
-            return Activity.AttachmentType.allCases.count
+            return AttachmentType.allCases.count
         }
     }
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         if pickerView == self.measurementTypePicker {
-            switch(Activity.MeasurementMethod.allCases[row]) {
+            switch(MeasurementMethod.allCases[row]) {
             case .doubleWithUnit:
                 return "Kommazahl"
             case .intWithoutUnit:
@@ -73,7 +74,7 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
             }
         }
         else {
-            switch(Activity.AttachmentType.allCases[row]) {
+            switch(AttachmentType.allCases[row]) {
             case .none:
                 return "Nichts"
             case .audio:
@@ -89,11 +90,11 @@ class AddNewActivityTableViewController: UITableViewController, UIPickerViewDele
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch(pickerView) {
         case self.measurementTypePicker:
-            self.selectedMeasurementMethod = Activity.MeasurementMethod.allCases[row]
+            self.selectedMeasurementMethod = MeasurementMethod.allCases[row]
             self.updateUnitTextfieldState()
             self.updateSaveButtonState()
         case self.attachmentTypePicker:
-            self.selectedAttachmentType = Activity.AttachmentType.allCases[row]
+            self.selectedAttachmentType = AttachmentType.allCases[row]
         default:
             os_log("Unknown picker selected: %s", pickerView)
             return

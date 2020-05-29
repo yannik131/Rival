@@ -65,7 +65,7 @@ class PlotViewController: UIViewController {
     var oldFormatter = IndexAxisValueFormatter()
     var selectedPlotTitleState: PlotTitleState = .sum
     var timeMultiplicationFactor: Double = 1.0
-    var ignoreZeros: Bool = false
+    var ignoreZeros: Bool = true
 
     //MARK: - Initialization
      

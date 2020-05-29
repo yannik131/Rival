@@ -108,6 +108,7 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         else {
             doubleTextField.keyboardType = .decimalPad
         }
+        doubleTextField.clearButtonMode = .whileEditing
         self.addUIView(view: doubleTextField)
         self.doubleTextField = doubleTextField
         addDoneButton(parentView: self, to: doubleTextField)

@@ -244,8 +244,8 @@ class FolderTableViewController: UITableViewController {
     private func fillList() {
         let action = {(folder: Folder, level: Int) in
             self.cellList.append(CellInformation(level: level, activity: nil, folder: folder, url: folder.url))
-            for activity in folder.activities.values {
-                self.cellList.append(CellInformation(level: level, activity: activity, folder: nil, url: folder.url.appendingPathComponent(activity.id.uuidString)))
+            for activity in folder.orderedActivities {
+                self.cellList.append(CellInformation(level: level, activity: activity, folder: nil, url: folder.url.appendingPathComponent(activity.id.uuidString, isDirectory: false)))
             }
         }
         filesystem.traverseDown(folderAction: action)

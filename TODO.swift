@@ -5,23 +5,18 @@
  TODO: appendingPathComponent should always have the isDirectory flag given to avoid superfluous disk access
  TODO: Be careful with Calendar.gregorian/Calendar.current and firstWeekday = 2
  TODO: Replace pickers with pop-up tableViews
- TODO: isFirstOrSecond is just stupid, rtfm
  TODO: IF this is imperformant: orderedActivities can be replaced by https://github.com/lukaskubanek/OrderedDictionary
  
 //MARK: - Plotting
- TODO: Average/Median/Min/Max/Sum as plot title
  TODO: Input time range: Default: Last 7 days. Default buttons (last (1-3) weeks, this week), last (1, 2, 3, 6) months, this month, this year. Click on date: Manually select date range with DateView (split ranges?). Sum up weeks in month view, months in year view. Compare last week with current week.
  TODO: 2 Plots gleichzeitig (z. B. zum Vergleichen von letzter Woche mit vorletzter Woche, Titel zeigt prozentuale Änderung)
  TODO: Input sources: Symbol for each measurement method, can't mix up methods except: Combined line/bar chart for Time, Float and Int. Combined chart: Combined checkbutton, tap once on first, once on second activity
  TODO: Plot type: Line/Bar/Pie for all 3 options. Pie: 1. Select method 2. Select activities. Line/Bar: Only 1 activity at a time
  
 //MARK: - Explorer
- TODO: Timer.startDate and self.chosenDate concurrency: Add value of end-start to today's value or make a cut at 23:59:59
- TODO: TextField delete button
+ TODO: copy photos/videos to camera roll
+ TODO: Timer.startDate and self.chosenDate concurrency: Add value of end-start to today's value or make a cut at 23:59:59 (appdelegate significant time change)
  TODO: Search bar
- TODO: Image attachments: Add images from photo library/record them, view images inside a view controller with date buttons
- TODO: Audio attachments: Record short audio snippets with AVKit
- TODO: Video attachments: Record < 10s videos with AVKit
  TODO: Receive attachments from other applications (Voice memo, photo library) via "Copy to/Open in Rival"
  TODO: Notify to input data with alert
  TODO: Goals for every activity, green dot for fulfilled goal in calendar

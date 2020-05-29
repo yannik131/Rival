@@ -9,67 +9,87 @@
 import Foundation
 import Charts
 
+enum MeasurementMethod: String, CaseIterable, Codable {
+    case yesNo //Yes, I played piano today.
+    case time //I played guitar for 25 minutes.
+    case doubleWithUnit //I ran 3.2 kilometers.
+    case intWithoutUnit //I did 25 pushups.
+    //TODO: case GPSkm, case syncWithStepCounter, use other sensors
+}
+
+enum AttachmentType: String, CaseIterable, Codable {
+    case none
+    case photo
+    case audio
+    case video
+}
+
+///Convenience struct to simplify serialization
+struct ActivityMetaData: Codable {
+    var name: String
+    var unit: String
+    let id: UUID
+    let measurementMethod: MeasurementMethod
+    let attachmentType: AttachmentType
+}
+
 class Activity: Codable {
     
     // MARK: - Properties
-    //TODO: All of this is serialized when one thing changes, maybe store measurements and comments in separate files?
+    
+    // MARK: Measurements
+    
+    var measurementsSaved: Bool
+    var measurements: [String:Double] = [:] {
+        didSet {
+            measurementsSaved = false
+        }
+    }
+    
+    // MARK: Comments
+    
+    var commentsSaved: Bool
+    var comments: [String:String] = [:] {
+        didSet {
+            commentsSaved = false
+        }
+    }
+    
+    //MARK: General Information
+    
+    var infoSaved: Bool
     var name: String {
         didSet {
-            saved = false
+            infoSaved = false
         }
     }
     var unit: String {
         didSet {
-            saved = false
+            infoSaved = false
         }
     }
-    var measurements: [String:Double] = [:] {
-        didSet {
-            saved = false
-        }
-    }
-    var comments: [String:String] = [:] {
-        didSet {
-            saved = false
-        }
-    }
+    let id: UUID
     let measurementMethod: MeasurementMethod
     let attachmentType: AttachmentType
-    var saved: Bool
-    let id: UUID
+    
+    var info: ActivityMetaData {
+        return ActivityMetaData(name: name, unit: unit, id: id, measurementMethod: measurementMethod, attachmentType: attachmentType)
+    }
     
     //MARK: - Initialization
     
-    init?(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none) {
-        guard !name.isEmpty || !(measurementMethod == .doubleWithUnit && unit.isEmpty) else {
-            return nil
-        }
-        id = UUID()
-        self.attachmentType = attachmentType
-        self.name = name
-        self.measurementMethod = measurementMethod
-        self.unit = unit
-        saved = false
+    init(info: ActivityMetaData) {
+        id = info.id
+        name = info.name
+        measurementMethod = info.measurementMethod
+        attachmentType = info.attachmentType
+        unit = info.unit
+        measurementsSaved = false
+        commentsSaved = false
+        infoSaved = false
         if name == "5km Lauf" {
             fillWithTimeData()
         }
-    }
-    
-    //MARK: - Types
-    
-    enum MeasurementMethod: String, CaseIterable, Codable {
-        case yesNo //Yes, I played piano today.
-        case time //I played guitar for 25 minutes.
-        case doubleWithUnit //I ran 3.2 kilometers.
-        case intWithoutUnit //I did 25 pushups.
-        //TODO: case GPSkm, case syncWithStepCounter, use other sensors
-    }
-    
-    enum AttachmentType: String, CaseIterable, Codable {
-        case none
-        case photo
-        case audio
-        case video
     }
     
     //MARK: - Public Methods
@@ -90,7 +110,7 @@ class Activity: Codable {
             measurement = self[date]
         }
         
-        switch(self.measurementMethod) {
+        switch(info.measurementMethod) {
         case .yesNo:
             if measurement == 0 {
                 return "Nein"
@@ -102,7 +122,7 @@ class Activity: Codable {
                 return String(Int(measurement)) + "x"
             }
         case .doubleWithUnit:
-            return "\(Double(round(measurement! * 100) / 100)) \(self.unit)"
+            return "\(Double(round(measurement! * 100) / 100)) \(info.unit)"
         case .time:
             return Date.timeString(Int(measurement))
         case .intWithoutUnit:
@@ -195,7 +215,7 @@ class Activity: Codable {
         self[DateFormats.shortYear.date(from: "23.04.20")!] = 26*60+8
         self[DateFormats.shortYear.date(from: "26.04.20")!] = 24*60+31
         self[DateFormats.shortYear.date(from: "28.04.20")!] = 25*60+35
-        saved = false
+        measurementsSaved = false
     }
 }
 

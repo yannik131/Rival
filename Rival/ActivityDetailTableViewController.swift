@@ -52,6 +52,8 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     var stopWatch: StopWatch!
     var timer: Timer! = nil
     var mediaStore = MediaStore.shared
+    var lastAddAmount: Double = 0.0
+    var lastSubstractAmount: Double = 0.0
     
     //MARK: - Initialization
     
@@ -107,12 +109,23 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             createButton.isHidden = true
             playButton.isHidden = true
         }
+        activityNameTextField.clearButtonMode = .whileEditing
+        unitTextField.clearButtonMode = .whileEditing
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(previousDateButtonTapped(_:)))
+        swipeRight.direction = .right
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(nextDateButtonTapped(_:)))
+        swipeLeft.direction = .left
+        let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(dateButtonTouchUpOutside(_:)))
+        swipeDown.direction = .down
+        view.addGestureRecognizer(swipeRight)
+        view.addGestureRecognizer(swipeLeft)
+        view.addGestureRecognizer(swipeDown)
     }
     
     //MARK: - Private Methods
     
     private func updatePath() {
-        self.pathNavigationItem.title = filesystem.current.url.appendingPathComponent(activity.name).path
+        self.pathNavigationItem.title = filesystem.current.url.appendingPathComponent(activity.name, isDirectory: false).path
     }
     
     private func createDateButtons() {
@@ -154,13 +167,65 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
             leftButton.addTarget(self, action: #selector(addOne), for: .touchUpInside)
             middleButton.addTarget(self, action: #selector(substractOne), for: .touchUpInside)
         }
+        else if activity.measurementMethod == .doubleWithUnit {
+            leftButton.setTitle("+", for: .normal)
+            middleButton.setTitle("-", for: .normal)
+            leftButton.addTarget(self, action: #selector(addAmount), for: .touchUpInside)
+            middleButton.addTarget(self, action: #selector(substractAmount), for: .touchUpInside)
+        }
         if activity.measurementMethod != .time {
             rightButton.addTarget(self, action: #selector(reset), for: .touchUpInside)
         }
     }
     
+    private func addOrSubstract(substract: Bool) {
+        let str: String
+        let amount: Double
+        if substract {
+            str = "subtrahierenden"
+            amount = lastSubstractAmount
+        }
+        else {
+            str = "addierenden"
+            amount = lastAddAmount
+        }
+        let alert = UIAlertController(title: "Addiere", message: "Gebe den zu \(str) Wert ein:", preferredStyle: .alert)
+        
+        alert.addTextField { (textField) in
+            if self.lastAddAmount != 0 {
+                textField.text = String(amount)
+            }
+            textField.keyboardType = .decimalPad
+            textField.clearButtonMode = .whileEditing
+        }
+        
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler:  { (action) in
+            let textField = alert.textFields?.first!
+            if let amount = Double(textField!.text!.replacingOccurrences(of: ",", with: ".")) {
+                if substract {
+                    self.activity[self.chosenDate] -= amount
+                    self.lastSubstractAmount = amount
+                }
+                else {
+                    self.activity[self.chosenDate] += amount
+                    self.lastAddAmount = amount
+                }
+                self.quantityView.update(for: self.chosenDate)
+            }
+        }))
+        present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func addAmount() {
+        addOrSubstract(substract: false)
+    }
+    
+    @objc func substractAmount() {
+        addOrSubstract(substract: true)
+    }
+    
     func updateButtonStates() {
-        if activity.measurementMethod == .time || activity.measurementMethod == .intWithoutUnit {
+        if activity.measurementMethod != .yesNo {
             self.leftButton.isEnabled = true
             self.middleButton.isEnabled = true
             if activity.measurementMethod == .time {

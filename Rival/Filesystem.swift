@@ -59,9 +59,9 @@ class Folder {
     ///Recursively defined computed property
     var url: URL {
         if let parent = parent {
-            return parent.url.appendingPathComponent(name)
+            return parent.url.appendingPathComponent(name, isDirectory: true)
         }
-        return URL(fileURLWithPath: name)
+        return URL(fileURLWithPath: name, isDirectory: true)
     }
     var permission: Permission = .everyone
     
@@ -119,8 +119,8 @@ class Filesystem {
         root = Folder("/", parent: nil)
         current = root
         archiveURL = manager.urls(for: .documentDirectory, in: .allDomainsMask).first!
-        filesystemArchiveURL = archiveURL.appendingPathComponent("filesystem.json")
-        activitiesArchiveURL = archiveURL.appendingPathComponent("act")
+        filesystemArchiveURL = archiveURL.appendingPathComponent("filesystem.json", isDirectory: false)
+        activitiesArchiveURL = archiveURL.appendingPathComponent("act", isDirectory: true)
         if !manager.fileExists(atPath: activitiesArchiveURL.path) {
             try! manager.createDirectory(at: activitiesArchiveURL, withIntermediateDirectories: true, attributes: nil)
         }
@@ -137,7 +137,7 @@ class Filesystem {
             let last = url.lastPathComponent
             if let id = UUID(uuidString: last) {
                 if let activity = activities[id] {
-                    current.activities[activity.name] = activity
+                    current.activities[activity.info.name] = activity
                 }
             }
             else {
@@ -159,7 +159,7 @@ class Filesystem {
                     urls.append(folder.url)
                 }
                 for activity in folder.orderedActivities {
-                    urls.append(folder.url.appendingPathComponent(activity.id.uuidString))
+                    urls.append(folder.url.appendingPathComponent(activity.id.uuidString, isDirectory: false))
                 }
             }
         }
@@ -167,28 +167,47 @@ class Filesystem {
         return urls
     }
     
+    private func loadActivity(id: UUID) -> Activity? {
+        let loadURL = activitiesArchiveURL.appendingPathComponent(id.uuidString, isDirectory: false)
+        if let info = try? Serialization.load(ActivityMetaData.self, with: decoder, from: loadURL.appendingPathExtension("info")) {
+            print("Loaded info of \"\(info.name)\"")
+            let activity = Activity(info: info)
+            activity.infoSaved = true
+            if let measurements = try? Serialization.load([String:Double].self, with: decoder, from: loadURL.appendingPathExtension("m")) {
+                activity.measurements = measurements
+                activity.measurementsSaved = true
+            }
+            if let comments = try? Serialization.load([String:String].self, with: decoder, from: loadURL.appendingPathExtension("c")) {
+                activity.comments = comments
+                activity.commentsSaved = true
+            }
+            return activity
+        }
+        return nil
+    }
+    
     func loadActivitiesFromArchiveURL() {
         let enumerator = manager.enumerator(at: activitiesArchiveURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants], errorHandler: nil)
         while let url = enumerator?.nextObject() as? URL {
-            if let id = url.id {
-                if let activity = try? Serialization.load(Activity.self, with: decoder, from: url) {
-                    activity.saved = true
-                    activities[id] = activity
-                }
-                else {
-                    print("Could not load \(url.path)")
-                }
+            if let id = url.id, activities[id] == nil {
+                activities[id] = loadActivity(id: id)
             }
+        }
+    }
+    
+    private func saveActivityPart<T: Encodable>(activity: Activity, part: T, flag: inout Bool, pathExtension: String) {
+        if !flag {
+            print("Saving \"\(activity.name)\", part: \(pathExtension)")
+            try! Serialization.save(part, with: encoder, to: activitiesArchiveURL.appendingPathComponent(activity.id.uuidString, isDirectory: false).appendingPathExtension(pathExtension))
+            flag = true
         }
     }
     
     func saveActivitiesToArchiveURL() {
         for activity in activities.values {
-            if !activity.saved {
-                print("Saving \(activity.name)")
-                try! Serialization.save(activity, with: encoder, to: activitiesArchiveURL.appendingPathComponent(activity.id.uuidString))
-                activity.saved = true
-            }
+            saveActivityPart(activity: activity, part: activity.info, flag: &activity.infoSaved, pathExtension: "info")
+            saveActivityPart(activity: activity, part: activity.measurements, flag: &activity.measurementsSaved, pathExtension: "m")
+            saveActivityPart(activity: activity, part: activity.comments, flag: &activity.commentsSaved, pathExtension: "c")
         }
     }
     
@@ -260,8 +279,9 @@ class Filesystem {
         current.activities[name] = activity
     }
     
-    func createActivity(name: String, measurementMethod: Activity.MeasurementMethod, unit: String = "", attachmentType: Activity.AttachmentType = .none) throws {
-        let activity = Activity(name: name, measurementMethod: measurementMethod, unit: unit, attachmentType: attachmentType)!
+    func createActivity(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none) throws {
+        let info = ActivityMetaData(name: name, unit: unit, id: UUID(), measurementMethod: measurementMethod, attachmentType: attachmentType)
+        let activity = Activity(info: info)
         guard !current.activities.keys.contains(name) else {
             throw FilesystemError.cannotCreate("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
         }
@@ -275,13 +295,10 @@ class Filesystem {
         current.activities[name] = nil
         activities[activity.id] = nil
         let urlToRemove = url(of: activity)
-        if manager.fileExists(atPath: urlToRemove.path) {
-            try! manager.removeItem(at: urlToRemove)
-        }
-        let url = MediaStore.shared.getMediaArchiveURL(for: activity)
-        if manager.fileExists(atPath: url.path) {
-            try! manager.removeItem(at: url)
-        }
+        try? manager.removeItem(at: urlToRemove.appendingPathExtension("info"))
+        try? manager.removeItem(at: urlToRemove.appendingPathExtension("m"))
+        try? manager.removeItem(at: urlToRemove.appendingPathExtension("c"))
+        try? manager.removeItem(at: MediaStore.shared.getMediaArchiveURL(for: activity))
     }
     
     func moveActivity(_ activity: Activity, from srcURL: URL, to dstURL: URL) throws {
@@ -355,6 +372,6 @@ class Filesystem {
     }
     
     func url(of activity: Activity) -> URL {
-        return activitiesArchiveURL.appendingPathComponent(activity.id.uuidString)
+        return activitiesArchiveURL.appendingPathComponent(activity.id.uuidString, isDirectory: false)
     }
 }

@@ -17,6 +17,7 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
     
     var date: Date!
     var activity: Activity!
+    @IBOutlet weak var contentView: UIView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,9 +27,14 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1.0
         scrollView.maximumZoomScale = 6.0
-        // Do any additional setup after loading the view.
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(decreaseDate(_:)))
+        swipeRight.direction = .right
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(increaseDate(_:)))
+        swipeLeft.direction = .left
+        view.addGestureRecognizer(swipeRight)
+        view.addGestureRecognizer(swipeLeft)
     }
-    
+
     func setImage(_ image: UIImage?) {
         if image == nil {
             noImageLabel.isHidden = false
