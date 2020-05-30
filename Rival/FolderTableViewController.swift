@@ -55,7 +55,8 @@ class FolderTableViewController: UITableViewController {
     
     enum Mode {
         case createFolder
-        case plotSelection
+        case singlePlotSelection
+        case multiplePlotSelection
         case moveActivity
     }
     
@@ -74,7 +75,7 @@ class FolderTableViewController: UITableViewController {
     var folderCreationCallback: (() -> Void)!
     ///If mode is .moveActivity, this will be set in didSelectRow
     var activityToMove: Activity!
-    ///If mode is .moveActivity, this is the folder the user selected. Is set in didSelectRow and used in saveButtonTapped
+    ///If mode is .moveActivity or .multiplePlotSelection, this is the folder the user selected. Is set in didSelectRow and used in saveButtonTapped
     var selectedFolder: Folder!
     ///If mode is .moveActivity, this is called in saveButtonTapped
     var moveCallback: (() -> Void)!
@@ -87,7 +88,7 @@ class FolderTableViewController: UITableViewController {
         if self.mode == .moveActivity {
             self.navigationItem.rightBarButtonItem!.isEnabled = false
         }
-        else if self.mode == .plotSelection && self.selectedActivity != nil {
+        else if self.mode == .singlePlotSelection && self.selectedActivity != nil {
             self.navigationItem.title = self.selectedActivity!.name
             for cell in self.cellList {
                 if let activity = cell.activity {
@@ -117,7 +118,7 @@ class FolderTableViewController: UITableViewController {
         if cellInformation.folder != nil { //This is a folder
             let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigFolderCell", for: indexPath) as! FolderConfigCell
             cell.setInformation(information: cellInformation, levelCharacter: "\t")
-            if mode == .plotSelection {
+            if mode == .singlePlotSelection {
                 cell.checkButton.isHidden = true
             }
             return cell
@@ -148,7 +149,7 @@ class FolderTableViewController: UITableViewController {
             deselectAll()
             cellInformation.state = .selected
             navigationItem.rightBarButtonItem!.isEnabled = true
-        case .plotSelection:
+        case .singlePlotSelection:
             guard let activity = cellInformation.activity else {
                 return
             }
@@ -159,6 +160,19 @@ class FolderTableViewController: UITableViewController {
             DispatchQueue.main.async {
                 self.dismiss(animated: true, completion: nil)
             }
+        case .multiplePlotSelection:
+            guard let folder = cellInformation.folder else {
+                return
+            }
+            let activities = folder.activities.values
+            if activities.isEmpty {
+                return
+            }
+            if activities.contains(where: {$0.unit != activities.first!.unit}) {
+                presentErrorAlert(presentingViewController: self, title: "Auswahl nicht möglich", message: "Die Aktivitäten in diesem Ordner haben nicht alle dieselbe Einheit.")
+                return
+            }
+            selectFolder(cellInformation: cellInformation, selectSubfolders: false)
         }
         tableView.reloadData()
     }
@@ -212,21 +226,7 @@ class FolderTableViewController: UITableViewController {
                 presentErrorAlert(presentingViewController: self, title: "Nö.", message: "Einen Überordner in einen Unterordner zu schieben würde eine Endlosschleife verursachen.")
                 return
             }
-            //(De)select the folder and all subitems of it
-            var newState: CellInformation.SelectedState = .subitem
-            if state == .selected {
-                newState = .unselected
-                //An url does not contain itself, so the selected folder state can be set separetely
-                cellInformation.state = .unselected
-            }
-            else if state == .unselected {
-                cellInformation.state = .selected
-            }
-            for cell in self.cellList {
-                if folder.url.contains(cell.url) {
-                    cell.state = newState
-                }
-            }
+            selectFolder(cellInformation: cellInformation, selectSubfolders: true)
         }
         else if cellInformation.activity != nil {
             if state == .subitem {
@@ -237,6 +237,42 @@ class FolderTableViewController: UITableViewController {
             }
             else if state == .unselected {
                 cellInformation.state = .selected
+            }
+        }
+    }
+    
+    private func selectFolder(cellInformation: CellInformation, selectSubfolders: Bool) {
+        guard let folder = cellInformation.folder else {
+            return
+        }
+        //(De)select the folder and all subitems of it
+        let state = cellInformation.state
+        var newState: CellInformation.SelectedState = .subitem
+        if !selectSubfolders {
+            deselectAll()
+        }
+        if state == .selected {
+            newState = .unselected
+            //An url does not contain itself, so the selected folder state can be set separetely
+            cellInformation.state = .unselected
+        }
+        else if state == .unselected {
+            cellInformation.state = .selected
+        }
+        if selectSubfolders {
+            for cell in self.cellList {
+                if folder.url.contains(cell.url) {
+                    cell.state = newState
+                }
+            }
+        }
+        else {
+            for cell in cellList {
+                if let activity = cell.activity {
+                    if folder.activities.keys.contains(activity.name) {
+                        cell.state = newState
+                    }
+                }
             }
         }
     }

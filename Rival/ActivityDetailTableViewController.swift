@@ -179,17 +179,17 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     }
     
     private func addOrSubstract(substract: Bool) {
-        let str: String
+        let info: (title: String, msg: String)
         let amount: Double
         if substract {
-            str = "subtrahierenden"
+            info = ("Subtrahiere", "subtrahierenden")
             amount = lastSubstractAmount
         }
         else {
-            str = "addierenden"
+            info = ("Addiere", "addierenden")
             amount = lastAddAmount
         }
-        let alert = UIAlertController(title: "Addiere", message: "Gebe den zu \(str) Wert ein:", preferredStyle: .alert)
+        let alert = UIAlertController(title: info.title, message: "Gebe den zu \(info.msg) Wert ein:", preferredStyle: .alert)
         
         alert.addTextField { (textField) in
             if self.lastAddAmount != 0 {

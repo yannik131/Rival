@@ -137,7 +137,7 @@ class Filesystem {
             let last = url.lastPathComponent
             if let id = UUID(uuidString: last) {
                 if let activity = activities[id] {
-                    current.activities[activity.info.name] = activity
+                    current.activities[activity.name] = activity
                 }
             }
             else {

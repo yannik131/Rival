@@ -14,7 +14,7 @@
  TODO: Plot type: Line/Bar/Pie for all 3 options. Pie: 1. Select method 2. Select activities. Line/Bar: Only 1 activity at a time
  
 //MARK: - Explorer
- TODO: copy photos/videos to camera roll
+ TODO: copy photos/videos to/select from camera roll
  TODO: Timer.startDate and self.chosenDate concurrency: Add value of end-start to today's value or make a cut at 23:59:59 (appdelegate significant time change)
  TODO: Search bar
  TODO: Receive attachments from other applications (Voice memo, photo library) via "Copy to/Open in Rival"

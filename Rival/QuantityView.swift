@@ -24,7 +24,6 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     }
     
     //UIPickerViewDataSource
-    let intRange: [Int] = Array(0...100)
     var timeRange = [[String](), [String](), [String]()]
     
     //MARK: - Initializers
@@ -57,25 +56,11 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
     }
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        switch(self.activity.measurementMethod) {
-        case .intWithoutUnit:
-            return self.intRange.count
-        case .time:
-            return self.timeRange[component].count
-        default:
-            fatalError()
-        }
+        return self.timeRange[component].count
     }
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        switch(self.activity.measurementMethod) {
-        case .intWithoutUnit:
-            return String(describing: self.intRange[row])
-        case .time:
-            return self.timeRange[component][row]
-        default:
-            fatalError()
-        }
+        return self.timeRange[component][row]
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
@@ -134,15 +119,12 @@ class QuantityView: UIView, UITextFieldDelegate, UIPickerViewDelegate, UIPickerV
         self.chosenDate = date
         
         switch(self.activity.measurementMethod) {
-            
         case .yesNo:
             self.createYesNoSwitch()
-            
         case .intWithoutUnit:
             fallthrough
         case .doubleWithUnit:
             self.createDoubleTextField()
-            
         case .time:
             self.createPicker()
         }

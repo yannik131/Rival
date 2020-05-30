@@ -9,21 +9,6 @@
 import UIKit
 import Charts
 
-//This is used for the y-axis label
-@IBDesignable
-class RotationLabel: UILabel {
-    @IBInspectable
-    var rotation: Int {
-        get {
-            return 0
-        }
-        set {
-            let radians = Float.pi / 180.0 * Float(newValue)
-            self.transform = CGAffineTransform(rotationAngle: CGFloat(radians))
-        }
-    }
-}
-
 class MyFormatter: DefaultValueFormatter {
     override func stringForValue(_ value: Double, entry: ChartDataEntry, dataSetIndex: Int, viewPortHandler: ViewPortHandler?) -> String {
         if value != 0 {
@@ -35,29 +20,22 @@ class MyFormatter: DefaultValueFormatter {
 
 class PlotViewController: UIViewController {
     
-    //MARK: - Types
-     
-    enum PlotType {
-        case Bar
-        case Line
-        case Pie
-    }
-    
     //MARK: - Properties
      
-    @IBOutlet weak var lineChartView: LineChartView!
+    @IBOutlet weak var stackView: UIStackView!
     @IBOutlet weak var detailItem: UINavigationItem!
     @IBOutlet weak var dateButton: UIButton!
-    var toPlot: Activity? {
-        didSet {
-            self.refreshPlot()
-        }
-    }
-     
+    ///Guaranteed to have a value if .mode is line
+    var activity: Activity!
+    ///Guaranteed to have a value if .mode is bar or pie
+    var folder: Folder!
+    let pieChartView = PieChartView()
+    let barChartView = BarChartView()
+    let lineChartView = LineChartView()
     let filesystem = Filesystem.shared
-    var selectedPlotType: PlotType = .Line
     var startDate: Date = Date().addingTimeInterval(TimeInterval(exactly: 86400 * 7 * -1)!)
     var endDate: Date = Date()
+    var selectedPlotType: PlotType = .line
     var selectedGranularity: Calendar.Component = .day
     var selectedPeriodTemplate: Date.PeriodTemplate = .last7Days
     var xAxis: XAxis!
@@ -70,25 +48,42 @@ class PlotViewController: UIViewController {
     //MARK: - Initialization
      
      override func viewDidLoad() {
-        super.viewDidLoad()
-        lineChartView.noDataText = "Keine Aktivität ausgewählt"
-        lineChartView.noDataFont = UIFont.systemFont(ofSize: 18)
-        self.xAxis = self.lineChartView.xAxis
-        self.yAxis = self.lineChartView.leftAxis
         let activities = filesystem.root.orderedActivities
-        toPlot = activities.first
-        if toPlot == nil {
-            detailItem.title = "Aktivität: " + selectedPeriodTemplate.rawValue
+        loadChartView()
+        if selectedPlotType == .line {
+            if activity == nil && !filesystem.current.activities.values.isEmpty {
+                activity = filesystem.current.activities.values.first!
+            }
+            if activities.isEmpty {
+                detailItem.title = "Aktivität: " + selectedPeriodTemplate.rawValue
+            }
+        }
+        else {
+            if folder == nil {
+                detailItem.title = "Ordner: " + selectedPeriodTemplate.rawValue
+            }
         }
      }
      
     //MARK: - Public Methods
+    
+    func loadChartView() {
+        stackView.removeArrangedSubview(stackView.arrangedSubviews.first!)
+        switch(selectedPlotType) {
+        case .line:
+            stackView.addArrangedSubview(lineChartView)
+        case .bar:
+            stackView.addArrangedSubview(barChartView)
+        case .pie:
+            stackView.addArrangedSubview(pieChartView)
+        }
+        let chartView = stackView.arrangedSubviews.first! as! ChartViewBase
+        chartView.noDataText = "Keine Aktivität ausgewählt"
+        chartView.noDataFont = UIFont.systemFont(ofSize: 18)
+    }
      
     func refreshPlot() {
-        guard let activity = self.toPlot else {
-            if let chart = self.lineChartView {
-                chart.data = nil
-            }
+        guard !activities.isEmpty else {
             return
         }
         if self.selectedPeriodTemplate == .custom {
@@ -97,19 +92,16 @@ class PlotViewController: UIViewController {
         else {
             self.detailItem.title = activity.name + ": " + self.selectedPeriodTemplate.rawValue
         }
-        
         let (set, labels, yTitle) = self.generatePlotInformation(from: activity)
         if labels.isEmpty {
-            lineChartView.data = nil
-            lineChartView.noDataText = "Keine Daten verfügbar"
+            chartView.data = nil
+            chartView.noDataText = "Keine Daten verfügbar"
             return
         }
-
         xAxis.valueFormatter = IndexAxisValueFormatter(values: labels)
         xAxis.granularity = 1
         xAxis.labelPosition = .bottom
-        lineChartView.rightAxis.enabled = false
-        
+        chartView.rightAxis.enabled = false
         var position = MyYAxisRenderer.Position.top
         if set.entries[0].y-set.yMin > (set.yMax-set.yMin) / 2 {
             position = .bottom
@@ -130,11 +122,11 @@ class PlotViewController: UIViewController {
             yAxis.labelFont = UIFont.systemFont(ofSize: 12)
             yAxis.valueFormatter = nil
         }
-        
-        lineChartView.xAxisRenderer = MyXAxisRenderer(title: "", base: lineChartView)
-        lineChartView.legend.enabled = false
-        lineChartView.pinchZoomEnabled = true
-        lineChartView.dragEnabled = true
+        chartView.xAxisRenderer = MyXAxisRenderer(title: "", base: chartView)
+        chartView.leftYAxisRenderer = MyYAxisRenderer(title: yTitle, plotTitle: getTitle(), base: chartView, position: position)
+        chartView.legend.enabled = false
+        chartView.pinchZoomEnabled = true
+        chartView.dragEnabled = true
         
         set.setCircleColor(UIColor.black)
         set.drawCircleHoleEnabled = false
@@ -144,18 +136,30 @@ class PlotViewController: UIViewController {
         
         set.circleRadius = 5
         set.setColor(UIColor.black)
-        let data = LineChartData(dataSet: set)
-        lineChartView.data = data
-        lineChartView.leftYAxisRenderer = MyYAxisRenderer(title: yTitle, plotTitle: getTitle(), base: lineChartView, position: position)
+        let data = CombinedChartData()
+        switch(selectedPlotType) {
+        case .line:
+            data.lineData = LineChartData(dataSet: set)
+        case .pie:
+            if activity.measurementMethod == .yesNo {
+                chartView.data = nil
+                chartView.noDataText = "Mit Ja/Nein ist kein Tortendiagramm möglich."
+                return
+            }
+            let data = PieChartData()
+            
+        case .bar:
+            data.barData = BarChartData(dataSet: set)
+        }
     }
      
     //MARK: - Private Methods
     
     private func getTitle() -> String {
-        guard let data = lineChartView.data else {
+        guard let data = chartView.data else {
             return ""
         }
-        let set = data.dataSets.first! as! LineChartDataSet
+        let set: ChartDataSet = data.dataSets.first as! ChartDataSet
         let sum = set.entries.reduce(0, {$0 + $1.y*(1.0/timeMultiplicationFactor)})
         var title = selectedPlotTitleState.rawValue + ": "
         switch(selectedPlotTitleState) {
@@ -173,6 +177,7 @@ class PlotViewController: UIViewController {
             title += "\(toPlot!.measurementToString(measurement: set.yMax*(1.0/timeMultiplicationFactor)))"
         }
         return title
+        
     }
     
     private func generatePlotInformation(from activity: Activity) -> (set: LineChartDataSet, labels: [String], yTitle: String) {
@@ -218,7 +223,7 @@ class PlotViewController: UIViewController {
         let owningNavigationController = segue.destination as! UINavigationController
         if segue.identifier == "PlotSelection" {
             let folderController = owningNavigationController.topViewController as! FolderTableViewController
-            folderController.mode = .plotSelection
+            folderController.mode = .singlePlotSelection
             folderController.selectionCallback = { (activity: Activity) in
                 self.toPlot = activity
             }
@@ -251,10 +256,11 @@ class PlotViewController: UIViewController {
                 self.ignoreZeros = ignoreZeros
                 self.refreshPlot()
             }
+            optionsController.selectedPlotType = selectedPlotType
+            optionsController.plotTypeSelectionCallback = { (plotType: PlotType) in
+                self.selectedPlotType = plotType
+                self.refreshPlot()
+            }
         }
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        //print("PlotView appears with startDate = \(startDate), endDate = \(endDate) and selectedGranularity = \(selectedGranularity)")
     }
 }
