@@ -269,7 +269,9 @@ class MediaStore {
         }
     }
     
-    func updateButtonTexts() {
+    //MARK: - General
+    
+    private func updateButtonTexts() {
         let recorded = self.recorded
         if mode == .audio {
             if let player = audioPlayer, player.isPlaying {

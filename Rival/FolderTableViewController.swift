@@ -66,9 +66,9 @@ class FolderTableViewController: UITableViewController {
     var cellList: [CellInformation] = []
     var mode: Mode = .createFolder
     ///If mode is .plotSelection, this will be called in didSelectRow
-    var selectionCallback: ((Activity) -> ())!
+    var selectionCallback: ((Activity?, Folder?) -> ())!
     ///If mode is .plotSelection, this will be set by the PlotViewController
-    var selectedActivity: Activity!
+    var selectedActivity: Activity?
     ///If mode is .createFolder, this will be set by AddNewActivityViewController
     var folderToCreate: Folder!
     ///If mode is .createFolder, this is called in saveButtonTapped
@@ -92,7 +92,7 @@ class FolderTableViewController: UITableViewController {
             self.navigationItem.title = self.selectedActivity!.name
             for cell in self.cellList {
                 if let activity = cell.activity {
-                    if activity.id == self.selectedActivity!.id {
+                    if activity.id == self.selectedActivity?.id {
                         cell.state = .selected
                     }
                 }
@@ -100,6 +100,16 @@ class FolderTableViewController: UITableViewController {
         }
         else if mode == .createFolder {
             navigationItem.title = folderToCreate.url.path
+        }
+        else if mode == .multiplePlotSelection {
+            navigationItem.title = "Ordner auswählen"
+            for cell in cellList {
+                if let folder = cell.folder {
+                    if folder === PlotEngine.shared.folder {
+                        selectFolder(cellInformation: cell, selectSubfolders: false)
+                    }
+                }
+            }
         }
     }
 
@@ -126,7 +136,7 @@ class FolderTableViewController: UITableViewController {
         else if cellInformation.activity != nil { //This is an activity
             let cell = tableView.dequeueReusableCell(withIdentifier: "folderConfigActivityCell", for: indexPath) as! ActivityConfigCell
             cell.setInformation(information: cellInformation)
-            if mode == .moveActivity {
+            if mode == .moveActivity || mode == .multiplePlotSelection {
                 cell.checkButton.isHidden = true
             }
             return cell
@@ -137,6 +147,7 @@ class FolderTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: false)
         let cellInformation = self.cellList[indexPath.row]
         switch(mode) {
         case .createFolder:
@@ -153,12 +164,12 @@ class FolderTableViewController: UITableViewController {
             guard let activity = cellInformation.activity else {
                 return
             }
-            selectionCallback!(activity)
+            selectionCallback!(activity, nil)
             deselectAll()
             cellInformation.state = .selected
             tableView.reloadData()
             DispatchQueue.main.async {
-                self.dismiss(animated: true, completion: nil)
+                self.performSegue(withIdentifier: "unwindToPlot", sender: self)
             }
         case .multiplePlotSelection:
             guard let folder = cellInformation.folder else {
@@ -173,6 +184,10 @@ class FolderTableViewController: UITableViewController {
                 return
             }
             selectFolder(cellInformation: cellInformation, selectSubfolders: false)
+            selectionCallback!(nil, folder)
+            DispatchQueue.main.async {
+                self.performSegue(withIdentifier: "unwindToPlot", sender: self)
+            }
         }
         tableView.reloadData()
     }

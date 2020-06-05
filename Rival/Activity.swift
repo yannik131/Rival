@@ -130,65 +130,6 @@ class Activity: Codable {
         }
     }
     
-    func createDataEntries(from startDate: Date, to endDate: Date, granularity: Calendar.Component, ignoreZeros: Bool) -> (entries: [ChartDataEntry], labels: [String]) {
-        guard startDate < endDate else {
-            fatalError()
-        }
-        var entries: [ChartDataEntry] = []
-        var labels: [String] = []
-        let start: Date
-        var end: Date
-        let formatter: ((Date) -> String)
-        switch (granularity) {
-        case .day:
-            start = startDate
-            end = endDate
-            formatter = { $0.dateString(with: DateFormats.dayMonth) }
-        case .weekOfYear:
-            start = startDate.startOfWeek
-            end = endDate.endOfWeek
-            formatter = { $0.startOfWeek.dateString(with: DateFormats.dayOnly) + "-" + $0.endOfWeek.dateString(with: DateFormats.dayOnly) }
-        case .month:
-            start = startDate.startOfMonth
-            end = endDate.endOfMonth
-            formatter = { $0.dateString(with: DateFormats.monthYearShort) }
-        case .year:
-            start = startDate.startOfYear
-            end = endDate.endOfYear
-            formatter = { $0.dateString(with: DateFormats.year) }
-        default:
-            fatalError()
-        }
-        //Because a while loop is used, the end date would  be excluded without this
-        end.addDays(days: 1)
-        var current = start
-        var currentNumber = -1
-        while !Calendar.iso.isDate(current, equalTo: end, toGranularity: .day) {
-            let number = Calendar.iso.component(granularity, from: current)
-            if number != currentNumber {
-                currentNumber = number
-                entries.append(ChartDataEntry(x: Double(entries.count), y: 0.0))
-                labels.append(formatter(current))
-            }
-            entries.last!.y += measurements[current.dateString(), default: 0]
-            current.addDays(days: 1)
-        }
-        
-        if ignoreZeros {
-            for i in stride(from: entries.count - 1, through: 0, by: -1) {
-                if entries[i].y == 0 {
-                    entries.remove(at: i)
-                    labels.remove(at: i)
-                }
-            }
-            for (index, entry) in entries.enumerated() {
-                entry.x = Double(index)
-            }
-        }
-        
-        return (entries, labels)
-    }
-    
     //MARK: - Private Methods
     
     //MARK: Sample data for debug purposes

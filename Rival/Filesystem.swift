@@ -170,7 +170,6 @@ class Filesystem {
     private func loadActivity(id: UUID) -> Activity? {
         let loadURL = activitiesArchiveURL.appendingPathComponent(id.uuidString, isDirectory: false)
         if let info = try? Serialization.load(ActivityMetaData.self, with: decoder, from: loadURL.appendingPathExtension("info")) {
-            print("Loaded info of \"\(info.name)\"")
             let activity = Activity(info: info)
             activity.infoSaved = true
             if let measurements = try? Serialization.load([String:Double].self, with: decoder, from: loadURL.appendingPathExtension("m")) {

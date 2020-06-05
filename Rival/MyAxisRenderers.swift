@@ -19,14 +19,14 @@ class MyYAxisRenderer: YAxisRenderer {
         case bottom
     }
     
-    private var title: String
+    private var ylabel: String
     private var plotTitle: String
     private var position: Position
     public var titleSize = CGSize()
     
-    required init(title: String, plotTitle: String, base: BarLineChartViewBase, position: Position) {
+    required init(ylabel: String, plotTitle: String, base: BarLineChartViewBase, position: Position = .top) {
         self.position = position
-        self.title = title
+        self.ylabel = ylabel
         self.plotTitle = plotTitle
         super.init(viewPortHandler: base.viewPortHandler, yAxis: base.leftAxis, transformer: base.getTransformer(forAxis: .left))
     }
@@ -42,8 +42,8 @@ class MyYAxisRenderer: YAxisRenderer {
             .foregroundColor: UIColor.systemTeal
         ]
         
-        // Determine the chart title's y-position.
-        self.titleSize = title.size(withAttributes: attributes)
+        // Determine the chart ylable's y-position.
+        self.titleSize = ylabel.size(withAttributes: attributes)
         let y: CGFloat
         let x: CGFloat = viewPortHandler.offsetLeft
         let bottom = viewPortHandler.chartHeight - titleSize.width - viewPortHandler.offsetBottom
@@ -61,8 +61,8 @@ class MyYAxisRenderer: YAxisRenderer {
         }
         let point = CGPoint(x: x, y: y)
         
-        // Render the chart title.
-        ChartUtils.drawText(context: context, text: title, point: point, attributes: attributes, anchor: .zero, angleRadians: .pi / -2)
+        // Render the ylabel.
+        ChartUtils.drawText(context: context, text: ylabel, point: point, attributes: attributes, anchor: .zero, angleRadians: .pi / -2)
         
         let plotTitleSize = plotTitle.size(withAttributes: attributes)
         let plotTitlePoint = CGPoint(x: (viewPortHandler.chartWidth-plotTitleSize.width)/2+self.axis!.xOffset, y: 0)

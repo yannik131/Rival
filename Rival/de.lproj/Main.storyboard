@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16096" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="pvu-Ia-iFi">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="16097" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="pvu-Ia-iFi">
     <device id="retina5_5" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
@@ -802,6 +802,9 @@
                                 <constraints>
                                     <constraint firstAttribute="height" constant="44" id="dAe-Ba-0gF"/>
                                 </constraints>
+                                <textAttributes key="titleTextAttributes">
+                                    <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                </textAttributes>
                                 <items>
                                     <navigationItem title="Aktivität: Datum" id="kpF-vA-JNM"/>
                                 </items>
@@ -846,6 +849,7 @@
                     <connections>
                         <outlet property="dateButton" destination="fbM-Ek-Iv1" id="TP3-5j-tJ2"/>
                         <outlet property="detailItem" destination="kpF-vA-JNM" id="jtL-9v-cHs"/>
+                        <outlet property="sourceButton" destination="PBE-Cv-cl7" id="dSm-PF-8Rv"/>
                         <outlet property="stackView" destination="YJd-ap-z1X" id="jiX-8k-cMM"/>
                     </connections>
                 </viewController>
@@ -970,7 +974,7 @@
                     <navigationItem key="navigationItem" title="Ploteinstellungen" id="hTZ-wm-5Xg">
                         <barButtonItem key="rightBarButtonItem" systemItem="done" id="twb-xs-kXX">
                             <connections>
-                                <action selector="cancel:" destination="jwR-qb-Yxx" id="QCF-qs-aZD"/>
+                                <segue destination="5fF-DK-9Sn" kind="unwind" unwindAction="unwindToPlotViewWithSender:" id="uIA-62-OUv"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -981,6 +985,7 @@
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Qpf-c7-r6J" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+                <exit id="5fF-DK-9Sn" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="4023.188405797102" y="-1716.0326086956522"/>
         </scene>
@@ -1130,8 +1135,12 @@
                             </connections>
                         </barButtonItem>
                     </navigationItem>
+                    <connections>
+                        <segue destination="Lpt-Nf-VKc" kind="unwind" identifier="unwindToPlot" unwindAction="unwindToPlotViewWithSender:" id="eRK-a0-wPD"/>
+                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="WE4-7m-aOP" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+                <exit id="Lpt-Nf-VKc" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="3116" y="-987"/>
         </scene>
@@ -1270,7 +1279,7 @@
                     <navigationItem key="navigationItem" title="Zeitraum auswählen" id="6ec-eb-Tc1">
                         <barButtonItem key="rightBarButtonItem" systemItem="done" id="Hjm-7h-e47">
                             <connections>
-                                <action selector="cancelButtonTapped:" destination="zwg-BY-6jR" id="nA4-WA-GTd"/>
+                                <segue destination="sUV-RA-GhX" kind="unwind" unwindAction="unwindToPlotViewWithSender:" id="PWS-7M-svv"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -1278,9 +1287,11 @@
                         <outlet property="dateButton" destination="cmt-wH-hX9" id="ERj-y9-rh5"/>
                         <outlet property="granularityPicker" destination="nJi-zV-So0" id="T7I-pm-Syf"/>
                         <outlet property="periodTemplatePicker" destination="cBq-oW-WoM" id="2J6-Mt-UsP"/>
+                        <segue destination="sUV-RA-GhX" kind="unwind" unwindAction="unwindToPlotViewWithSender:" id="FFj-17-fGa"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iM7-Jb-lXx" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+                <exit id="sUV-RA-GhX" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="4023.188405797102" y="-2535.326086956522"/>
         </scene>
@@ -1935,7 +1946,7 @@
                         </barButtonItem>
                         <barButtonItem key="rightBarButtonItem" systemItem="done" id="QU0-2D-g2A">
                             <connections>
-                                <action selector="doneButtonTapped:" destination="iYr-XY-Wu7" id="TJT-4U-jGR"/>
+                                <segue destination="78t-BQ-ho2" kind="unwind" unwindAction="unwindFromCalendarWithSender:" id="5XK-VA-HZg"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -1946,12 +1957,13 @@
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="OA0-yT-kYv" sceneMemberID="firstResponder"/>
+                <exit id="78t-BQ-ho2" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="5858" y="-2535"/>
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="NWJ-3K-0CH"/>
+        <segue reference="U2U-ss-vcn"/>
     </inferredMetricsTieBreakers>
     <resources>
         <image name="arrow.left" catalog="system" width="128" height="98"/>

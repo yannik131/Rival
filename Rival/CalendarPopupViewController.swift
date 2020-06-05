@@ -287,7 +287,7 @@ extension CalendarViewController: UITableViewDataSource {
             cell.textLabel?.text = activity!.name + ": " + activity!.measurementToString(date: firstDate!)
         }
         else if firstDate != nil && secondDate != nil {
-            let sum = activity!.createDataEntries(from: firstDate!, to: secondDate!, granularity: .day, ignoreZeros: false).entries.reduce(0, {$0+$1.y})
+            let sum = PlotEngine.shared.createDataEntries(from: activity!, ignoreZeros: false, from: firstDate!, to: secondDate!, granularity: .day).entries.reduce(0, {$0+$1.y})
             cell.textLabel?.text = activity!.name + ": " + activity!.measurementToString(measurement: sum)
         }
         cell.imageView?.image = determineActivityImage(for: activity!)

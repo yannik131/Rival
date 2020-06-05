@@ -381,10 +381,6 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         self.activity.comments[chosenDate.dateString()] = textView.text
     }
     
-    func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
-        return self.chosenDate.isToday()
-    }
-    
     //MARK: - UITextFieldDelegate
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

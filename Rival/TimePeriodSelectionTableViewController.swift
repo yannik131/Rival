@@ -15,17 +15,8 @@ class TimePeriodSelectionTableViewController: UITableViewController {
     @IBOutlet weak var granularityPicker: UIPickerView!
     @IBOutlet weak var periodTemplatePicker: UIPickerView!
     
-    var selectedGranularity: Calendar.Component!
-    var selectedPeriodTemplate: Date.PeriodTemplate! {
-        didSet {
-            self.update()
-        }
-    }
-    var startDate: Date!
-    var endDate: Date!
-    var activity: Activity?
     var availableComponents: [(Calendar.Component, String)] = [(.day, "Tag"), (.weekOfYear, "Woche"), (.month, "Monat"), (.year, "Jahr")]
-    var selectionCallback: ((Date, Date, Calendar.Component, Date.PeriodTemplate) -> ())!
+    let engine = PlotEngine.shared
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,9 +25,9 @@ class TimePeriodSelectionTableViewController: UITableViewController {
         self.granularityPicker.dataSource = self
         self.periodTemplatePicker.delegate = self
         self.periodTemplatePicker.dataSource = self
-        self.granularityPicker.selectRow(availableComponents.firstIndex(where: {$0.0 == selectedGranularity})!, inComponent: 0, animated: false)
-        self.periodTemplatePicker.selectRow(Date.PeriodTemplate.allCases.firstIndex(of: self.selectedPeriodTemplate)!, inComponent: 0, animated: false)
-        self.update()
+        self.granularityPicker.selectRow(availableComponents.firstIndex(where: {$0.0 == engine.granularity})!, inComponent: 0, animated: false)
+        self.periodTemplatePicker.selectRow(PeriodTemplate.allCases.firstIndex(of: engine.periodTemplate)!, inComponent: 0, animated: false)
+        dateButton.setTitle(engine.rangeString, for: .normal)
     }
     
     //MARK: - Navigation
@@ -44,62 +35,19 @@ class TimePeriodSelectionTableViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         switch(segue.identifier ?? "") {
         case "selectDateRange":
-            self.selectedPeriodTemplate = .custom
-            self.periodTemplatePicker.selectRow(Date.PeriodTemplate.allCases.firstIndex(of: self.selectedPeriodTemplate)!, inComponent: 0, animated: false)
+            engine.changePeriodTemplate(to: .custom)
+            self.periodTemplatePicker.selectRow(PeriodTemplate.allCases.firstIndex(of: .custom)!, inComponent: 0, animated: false)
             let navigationController = segue.destination as! UINavigationController
             let calendarViewController = navigationController.topViewController as! CalendarViewController
             calendarViewController.selectionMode = .rangeSelection
-            calendarViewController.firstDate = startDate
-            calendarViewController.secondDate = endDate
+            calendarViewController.firstDate = engine.startDate
+            calendarViewController.secondDate = engine.endDate
             calendarViewController.rangeSelectionCallback = {
-                self.startDate = $0
-                self.endDate = $1
-                self.update()
-                self.selectionCallback($0, $1, self.selectedGranularity, self.selectedPeriodTemplate)
+                self.engine.setDateRange(from: $0, to: $1)
             }
-            calendarViewController.activity = activity
+            calendarViewController.activity = engine.activity
         default:
-            fatalError()
-        }
-    }
-    
-    //MARK: - Private Methods
-    
-    private func update() {
-        var startDate = Date()
-        var endDate = Date()
-        switch(self.selectedPeriodTemplate) {
-        case .last7Days:
-            startDate = Calendar.iso.date(byAdding: .day, value: -7, to: endDate)!
-        case .thisWeek:
-            startDate = startDate.startOfWeek
-            endDate = startDate.endOfWeek
-        case .lastWeek:
-            startDate = Calendar.iso.date(byAdding: .weekOfMonth, value: -1, to: startDate)!.startOfWeek
-            endDate = startDate.endOfWeek
-        case .thisMonth:
-            startDate = startDate.startOfMonth
-            endDate = startDate.endOfMonth
-        case .lastMonth:
-            startDate = Calendar.iso.date(byAdding: .month, value: -1, to: startDate)!.startOfMonth
-            endDate = startDate.endOfMonth
-        case .thisYear:
-            startDate = startDate.startOfYear
-            endDate = endDate.endOfYear
-        case .lastYear:
-            startDate = Calendar.iso.date(byAdding: .year, value: -1, to: startDate)!.startOfYear
-            endDate = startDate.endOfYear
-        case .custom:
             break
-        default:
-            fatalError()
-        }
-        if self.selectedPeriodTemplate != .custom {
-            self.startDate = startDate
-            self.endDate = endDate
-        }
-        if let button = self.dateButton {
-            button.setTitle(self.startDate.dateString(with: DateFormats.shortYear)+"-"+self.endDate.dateString(with: DateFormats.shortYear), for: .normal)
         }
     }
 
@@ -115,8 +63,8 @@ class TimePeriodSelectionTableViewController: UITableViewController {
     
     //MARK: - Actions
     
-    @IBAction func cancelButtonTapped(_ sender: UIBarButtonItem) {
-        dismiss(animated: true, completion: nil)
+    @IBAction func unwindFromCalendar(sender: UIStoryboardSegue) {
+        dateButton.setTitle(engine.rangeString, for: .normal)
     }
     
     @IBAction func dateButtonTapped(_ sender: UIButton) {
@@ -133,7 +81,7 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
         case self.granularityPicker:
             return availableComponents.count
         case self.periodTemplatePicker:
-            return Date.PeriodTemplate.allCases.count
+            return PeriodTemplate.allCases.count
         default:
             fatalError()
         }
@@ -144,7 +92,7 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
         case self.granularityPicker:
             return availableComponents[row].1
         case self.periodTemplatePicker:
-            return Date.PeriodTemplate.allCases[row].rawValue
+            return PeriodTemplate.allCases[row].rawValue
         default:
             fatalError()
         }
@@ -153,13 +101,13 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch(pickerView) {
         case self.granularityPicker:
-            self.selectedGranularity = availableComponents[row].0
+            engine.granularity = availableComponents[row].0
         case self.periodTemplatePicker:
-            self.selectedPeriodTemplate = Date.PeriodTemplate.allCases[row]
+            engine.changePeriodTemplate(to: PeriodTemplate.allCases[row])
+            dateButton.setTitle(engine.rangeString, for: .normal)
         default:
             fatalError()
         }
-        self.selectionCallback(self.startDate, self.endDate, self.selectedGranularity, self.selectedPeriodTemplate)
     }
     
 }

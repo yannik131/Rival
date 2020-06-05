@@ -72,17 +72,6 @@ extension Date {
         return Calendar.iso.component(.month, from: self)
     }
     
-    enum PeriodTemplate: String, CaseIterable {
-        case last7Days = "Letzte 7 Tage"
-        case thisWeek = "Diese Woche"
-        case lastWeek = "Letzte Woche"
-        case thisMonth = "Dieser Monat"
-        case lastMonth = "Letzter Monat"
-        case thisYear = "Dieses Jahr"
-        case lastYear = "Letztes Jahr"
-        case custom = "Manuell"
-    }
-    
     public func dateString(with formatter: DateFormatter = DateFormats.full) -> String {
         return formatter.string(from: self)
     }
@@ -93,6 +82,12 @@ extension Date {
     
     public mutating func addDays(days: Int) {
         self = Calendar.current.date(byAdding: .day, value: days, to: self)!
+    }
+    
+    public func addingDays(days: Int) -> Date {
+        var date = self
+        date.addDays(days: days)
+        return date
     }
     
     public static func split(_ seconds: Int) -> (hours: Int, minutes: Int, seconds: Int) {
