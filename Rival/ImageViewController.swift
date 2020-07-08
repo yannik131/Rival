@@ -21,9 +21,9 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.date = MediaStore.shared.date!
-        self.activity = MediaStore.shared.activity!
-        setImage(MediaStore.shared.image)
+        self.date = MediaHandler.shared.date!
+        self.activity = MediaHandler.shared.activity!
+        setImage(MediaHandler.shared.image)
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1.0
         scrollView.maximumZoomScale = 6.0
@@ -53,14 +53,14 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
     
     @IBAction func increaseDate(_ sender: Any) {
         date.addDays(days: 1)
-        let url = MediaStore.shared.getMediaArchiveURL(for: MediaStore.shared.activity!, at: date)
+        let url = MediaHandler.shared.getMediaArchiveURL(for: MediaHandler.shared.activity!, at: date)
         let image = UIImage(contentsOfFile: url.path)
         setImage(image)
     }
     
     @IBAction func decreaseDate(_ sender: Any) {
         date.addDays(days: -1)
-        let url = MediaStore.shared.getMediaArchiveURL(for: MediaStore.shared.activity!, at: date)
+        let url = MediaHandler.shared.getMediaArchiveURL(for: MediaHandler.shared.activity!, at: date)
         let image = UIImage(contentsOfFile: url.path)
         setImage(image)
     }

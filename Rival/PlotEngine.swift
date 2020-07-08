@@ -9,31 +9,6 @@
 import Foundation
 import Charts
 
-enum PlotTitleState: String, CaseIterable {
-    case sum = "Summe"
-    case median = "Median"
-    case average = "Durchschnitt"
-    case min = "Minimum"
-    case max = "Maximum"
-}
-
-enum PlotType: String, CaseIterable {
-    case bar = "Balken"
-    case line = "Linie"
-    case pie = "Torte"
-}
-
-enum PeriodTemplate: String, CaseIterable {
-    case last7Days = "Letzte 7 Tage"
-    case thisWeek = "Diese Woche"
-    case lastWeek = "Letzte Woche"
-    case thisMonth = "Dieser Monat"
-    case lastMonth = "Letzter Monat"
-    case thisYear = "Dieses Jahr"
-    case lastYear = "Letztes Jahr"
-    case custom = "Manuell"
-}
-
 enum PlotError: Error {
     case DateRangeError(String)
 }
@@ -48,6 +23,7 @@ class PlotEngine {
     
     //MARK: - Properties
     
+    let options = Options.getInstance()
     var activity: Activity?
     var folder: Folder?
     var folderMethod: MeasurementMethod? {
@@ -57,14 +33,17 @@ class PlotEngine {
         return folder?.activities.values.first!.unit ?? nil
     }
     var rangeString: String? {
-        if startDate == nil {
+        if options.startDate == nil {
             return nil
         }
-        return startDate.dateString() + "-" + endDate.dateString()
+        return options.startDate.dateString() + "-" + options.endDate.dateString()
+    }
+    var plotType: PlotType {
+        return options.plotType
     }
     private(set) var timeMultiplicationFactor: Double!
     var ready: Bool {
-        return lineChartDataSet != nil && plotType == .line || barChartDataSet != nil && plotType == .bar || pieChartDataSet != nil && plotType == .pie
+        return lineChartDataSet != nil && options.plotType == .line || barChartDataSet != nil && options.plotType == .bar || pieChartDataSet != nil && options.plotType == .pie
     }
     
     private(set) var lineChartDataSet: LineChartDataSet?
@@ -76,19 +55,16 @@ class PlotEngine {
     
     private let factorStrings: [Double:String] = [1.0/3600:"h", 1.0/60:"m", 1.0:"s"]
     
-    //MARK: Externally set options
-    var plotType: PlotType = .line
-    var granularity: Calendar.Component! = .day
-    var ignoreZeros: Bool = true
-    var plotTitleState: PlotTitleState = .sum
-    private(set) var startDate: Date!
-    private(set) var endDate: Date! = Date()
-    private(set) var periodTemplate: PeriodTemplate!
-    
     static let shared = PlotEngine()
     
     init() {
-        changePeriodTemplate(to: .last7Days)
+        changePeriodTemplate(to: options.periodTemplate)
+        if let id = options.activityID {
+            activity = Filesystem.shared.activities[id]
+        }
+        if let url = options.folderURL {
+            folder = Filesystem.shared.getFolder(at: url)
+        }
     }
     
     //MARK: - Public Methods
@@ -100,7 +76,7 @@ class PlotEngine {
         }
         timeMultiplicationFactor = 1.0
         if plotType == .line {
-            let (entries, labels) = createDataEntries(from: activity!, ignoreZeros: self.ignoreZeros)
+            let (entries, labels) = createDataEntries(from: activity!, ignoreZeros: options.ignoreZeros)
             normalizeTimeEntries(entries: [entries])
             lineChartDataSet = LineChartDataSet(entries: entries)
             self.labels = labels
@@ -136,7 +112,7 @@ class PlotEngine {
                     for j in 0..<chartEntries.count {
                         stack.append(chartEntries[j][i].y)
                     }
-                    if stack.reduce(0, {$0+$1}) == 0 && ignoreZeros {
+                    if stack.reduce(0, {$0+$1}) == 0 && options.ignoreZeros {
                         zeroIndexes.append(i)
                     }
                     else {
@@ -165,6 +141,9 @@ class PlotEngine {
                     entry.label = names[i]
                     entry.label! += ": \((entry.y / totalSum * 100).roundedTo(2))%"
                 }
+                if options.ignoreZeros {
+                    pieChartEntries.removeAll(where: {$0.y == 0})
+                }
                 
                 pieChartDataSet = PieChartDataSet(entries: pieChartEntries)
                 pieChartDataSet!.label = folder!.name
@@ -173,10 +152,11 @@ class PlotEngine {
         }
         ylabel = generateYLabel()
         plotTitle = generatePlotTitle()
+        options.save()
     }
     
     func generateYLabel() -> String {
-        guard plotType != .pie && (activity != nil || folder != nil) else {
+        guard options.plotType != .pie && (activity != nil || folder != nil) else {
             return ""
         }
         let method: MeasurementMethod
@@ -227,20 +207,25 @@ class PlotEngine {
         case .pie:
             set = pieChartDataSet!
         }
-        var title = plotTitleState.rawValue + ": "
+        var title = options.plotTitleState.rawValue + ": "
         let sum: Double = set.entries.reduce(0, {$0 + $1.y*1.0/timeMultiplicationFactor})
         if plotType == .line && activity.measurementMethod == .yesNo {
             return "Summe: \(Int(sum))x"
         }
-        switch(plotTitleState) {
+        switch(options.plotTitleState) {
         case .sum:
             title += "\(activity.measurementToString(measurement: sum))"
         case .average:
             title += "\(activity.measurementToString(measurement: sum/Double(set.entries.count)))"
         case .median:
             let entries = set.entries.sorted(by: {$0.y < $1.y})
-            let median = entries[Int(entries.count/2)].y*(1.0/timeMultiplicationFactor)
-            title += "\(activity.measurementToString(measurement: median))"
+            if entries.isEmpty {
+                title += "0"
+            }
+            else {
+                let median = entries[Int(entries.count/2)].y*(1.0/timeMultiplicationFactor)
+                title += "\(activity.measurementToString(measurement: median))"
+            }
         case .min:
             title += "\(activity.measurementToString(measurement: set.yMin*(1.0/timeMultiplicationFactor)))"
         case .max:
@@ -280,11 +265,11 @@ class PlotEngine {
             }
         }
         let second: String
-        if periodTemplate == .custom {
+        if options.periodTemplate == .custom {
             second = rangeString!
         }
         else {
-            second = periodTemplate.rawValue
+            second = options.periodTemplate.rawValue
         }
         return first + ": " + second + ". " + generatePlotTitle()
     }
@@ -292,7 +277,7 @@ class PlotEngine {
     func changePeriodTemplate(to template: PeriodTemplate) {
         var startDate = Date()
         var endDate = Date()
-        periodTemplate = template
+        options.periodTemplate = template
         switch(template) {
         case .last7Days:
             startDate = Calendar.iso.date(byAdding: .day, value: -7, to: endDate)!
@@ -317,13 +302,13 @@ class PlotEngine {
         case .custom:
             return
         }
-        self.startDate = startDate
-        self.endDate = endDate
+        options.startDate = startDate
+        options.endDate = endDate
     }
     
     func setDateRange(from startDate: Date, to endDate: Date) {
-        self.startDate = startDate
-        self.endDate = endDate
+        options.startDate = startDate
+        options.endDate = endDate
         changePeriodTemplate(to: .custom)
     }
     
@@ -365,11 +350,11 @@ class PlotEngine {
     }
     
     func createDataEntries(from activity: Activity, ignoreZeros: Bool, from firstDate: Date? = nil, to secondDate: Date? = nil, granularity: Calendar.Component? = nil) -> (entries: [ChartDataEntry], labels: [String]) {
-        let chosenGranularity: Calendar.Component = granularity ?? self.granularity
+        let chosenGranularity: Calendar.Component = granularity ?? options.granularity
         let start: Date
         var end: Date
-        let startDate: Date! = firstDate ?? self.startDate
-        let endDate: Date! = secondDate ?? self.endDate
+        let startDate: Date! = firstDate ?? options.startDate
+        let endDate: Date! = secondDate ?? options.endDate
         let formatter: ((Date) -> String)
         switch (chosenGranularity) {
         case .day:
@@ -391,7 +376,7 @@ class PlotEngine {
         default:
             fatalError()
         }
-        //Add one to not exclude endDate, and another one to compensate for the fact that if currentNumber changes, the day before gets added to entries
+        //Add one to not exclude endDate, and again to compensate for the fact that if currentNumber changes, the day before gets added to entries
         end.addDays(days: 2)
         var current = start
         var currentNumber = Calendar.iso.component(chosenGranularity, from: current)

@@ -58,6 +58,7 @@ class PlotViewController: UIViewController {
      override func viewDidLoad() {
         chartSetup()
         loadChartView()
+        refreshPlot()
      }
      
     //MARK: - Public Methods
@@ -121,10 +122,10 @@ class PlotViewController: UIViewController {
         else {
             sourceButton?.title = "Ordner"
         }
+        loadChartView()
         guard engine.ready else {
             return
         }
-        loadChartView()
         switch(engine.plotType) {
         case .line:
             guard let set = engine.lineChartDataSet, containsData(set) else {

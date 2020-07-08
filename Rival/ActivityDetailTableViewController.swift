@@ -51,7 +51,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     let filesystem = Filesystem.shared
     var stopWatch: StopWatch!
     var timer: Timer! = nil
-    var mediaStore = MediaStore.shared
+    var mediaStore = MediaHandler.shared
     var lastAddAmount: Double = 0.0
     var lastSubstractAmount: Double = 0.0
     
@@ -193,7 +193,8 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         
         alert.addTextField { (textField) in
             if self.lastAddAmount != 0 {
-                textField.text = String(amount)
+                //I think this is annoying.
+                //textField.text = String(amount)
             }
             textField.keyboardType = .decimalPad
             textField.clearButtonMode = .whileEditing
@@ -423,7 +424,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
 }
 
 extension ActivityDetailTableViewController: MediaDelegate {
-    func throwError(_ error: Error) {
+    func presentError(_ error: Error) {
         presentErrorAlert(presentingViewController: self, error: error)
     }
 }

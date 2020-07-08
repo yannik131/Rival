@@ -34,10 +34,12 @@ class ExplorerTableViewController: UITableViewController{
     override func viewDidLoad() {
         super.viewDidLoad()
         self.setDateButtonDate()
+        os_log("Loading sample data")
         self.loadSampleData()
         self.setUpDateArrows()
         //This is necessary if the segue animations look weird
         self.navigationController!.view.backgroundColor = UIColor.white
+        os_log("Loading Explorer finished")
     }
     
     //MARK: - Actions
@@ -91,8 +93,10 @@ class ExplorerTableViewController: UITableViewController{
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        os_log("%@::%@: Requesting cell for row at %@", #file, #function, indexPath.description)
         if let activity = getSelectedActivity(for: indexPath) {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "activityCell", for: indexPath) as? ActivityTableViewCell else {
+                os_log("Failed to reuse ActivityTableViewCell")
                 fatalError()
             }
             cell.activity = activity
@@ -101,6 +105,7 @@ class ExplorerTableViewController: UITableViewController{
         }
         else if let folder = getSelectedFolder(for: indexPath) {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "folderCell", for: indexPath) as? FolderTableViewCell else {
+                os_log("Failed to reuse FolderTableViewCell")
                 fatalError()
             }
             cell.folder = folder
@@ -113,7 +118,8 @@ class ExplorerTableViewController: UITableViewController{
             return cell
         }
         else {
-            fatalError("Unknown cell")
+            os_log("Failed to reuse cell: Unknown cell")
+            fatalError()
         }
     }
     
@@ -135,11 +141,13 @@ class ExplorerTableViewController: UITableViewController{
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             if let activity = self.getSelectedActivity(for: indexPath) {
+                os_log("Deleting activity")
                 self.adjustRowNumbersAfterAction {
                     filesystem.deleteActivity(activity.name)
                 }
             }
             else if let folder = self.getSelectedFolder(for: indexPath) {
+                os_log("Deleting folder")
                 self.adjustRowNumbersAfterAction {
                     do {
                         try filesystem.deleteFolder(folder.name)
@@ -149,6 +157,7 @@ class ExplorerTableViewController: UITableViewController{
                     }
                 }
             }
+            os_log("Success")
             updatePath()
         }
     }
@@ -156,24 +165,20 @@ class ExplorerTableViewController: UITableViewController{
     // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        os_log("%@::%@ preparing for segue with identifier %@", #file, #function, segue.identifier ?? "nil")
         super.prepare(for: segue, sender: sender)
-        
         switch(segue.identifier ?? "") {
         case "AddActivity":
             if let controller = (segue.destination as! UINavigationController).topViewController as? AddNewActivityTableViewController {
                 controller.completionCallback = tableView.reloadData
             }
         case "ShowDetail":
-            guard let destinationViewController = segue.destination as? ActivityDetailTableViewController else {
-                fatalError("showDetail: Wrong connection.")
-            }
-            
-            guard let selectedCell = sender as? ActivityTableViewCell else {
-                fatalError("showDetail: No cell was tapped.")
-            }
+            let destinationViewController = segue.destination as! ActivityDetailTableViewController
+            let selectedCell = sender as! ActivityTableViewCell
             
             guard let indexPath = tableView.indexPath(for: selectedCell) else {
-                fatalError("Unknown cell selected.")
+                os_log("ShowDetail segue triggered without selected cell")
+                break
             }
             
             let activity = getSelectedActivity(for: indexPath)!
@@ -186,11 +191,12 @@ class ExplorerTableViewController: UITableViewController{
             destinationViewController.singleSelectionCallback = {(date: Date) in self.chosenDate = date}
             destinationViewController.firstDate = self.chosenDate
         default:
-            fatalError("Unknown segue triggered.")
+            break
         }
     }
     
     override func viewWillAppear(_ animated: Bool) {
+        os_log("Explorer view will appear")
         tableView.reloadData()
         self.updatePath()
     }
@@ -222,6 +228,7 @@ class ExplorerTableViewController: UITableViewController{
     }
     
     private func adjustRowNumbersAfterAction(action: () -> ()) {
+        os_log("Adjusting row numbers")
         let previousRowCount = filesystem.count
         action()
         let currentRowCount = filesystem.count
@@ -240,6 +247,7 @@ class ExplorerTableViewController: UITableViewController{
         }
         tableView.reloadData()
         updatePath()
+        os_log("Success")
     }
 
     private func setDateButtonDate() {

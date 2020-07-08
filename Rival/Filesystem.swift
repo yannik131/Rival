@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import os.log
 
 extension URL {
     public func contains(_ url: URL) -> Bool {
@@ -102,7 +103,7 @@ class Filesystem {
     private(set) public var activities: [UUID:Activity] = [:]
     private(set) public var root: Folder
     private(set) public var current: Folder
-    let archiveURL: URL
+    let documentsURL: URL
     let filesystemArchiveURL: URL
     let activitiesArchiveURL: URL
     let encoder = JSONEncoder()
@@ -118,13 +119,14 @@ class Filesystem {
     init() {
         root = Folder("/", parent: nil)
         current = root
-        archiveURL = manager.urls(for: .documentDirectory, in: .allDomainsMask).first!
-        filesystemArchiveURL = archiveURL.appendingPathComponent("filesystem.json", isDirectory: false)
-        activitiesArchiveURL = archiveURL.appendingPathComponent("act", isDirectory: true)
+        documentsURL = manager.urls(for: .documentDirectory, in: .allDomainsMask).first!
+        filesystemArchiveURL = documentsURL.appendingPathComponent("filesystem.json", isDirectory: false)
+        activitiesArchiveURL = documentsURL.appendingPathComponent("act", isDirectory: true)
         if !manager.fileExists(atPath: activitiesArchiveURL.path) {
+            os_log("Creating activities save directory at %@", activitiesArchiveURL.path)
             try! manager.createDirectory(at: activitiesArchiveURL, withIntermediateDirectories: true, attributes: nil)
         }
-        print("Archive URL for this session: \(archiveURL.path)")
+        print("Archive URL for this session: \(documentsURL.path)")
     }
     
     //MARK: - Public Methods
@@ -196,7 +198,7 @@ class Filesystem {
     
     private func saveActivityPart<T: Encodable>(activity: Activity, part: T, flag: inout Bool, pathExtension: String) {
         if !flag {
-            print("Saving \"\(activity.name)\", part: \(pathExtension)")
+            os_log("Saving %@, part %@", activity.name, pathExtension)
             try! Serialization.save(part, with: encoder, to: activitiesArchiveURL.appendingPathComponent(activity.id.uuidString, isDirectory: false).appendingPathExtension(pathExtension))
             flag = true
         }
@@ -212,6 +214,7 @@ class Filesystem {
     
     func saveToArchiveURL() {
         let urls = getStructureAsURLs()
+        os_log("Saving tree structure to %@", filesystemArchiveURL.path)
         try! Serialization.save(urls, with: encoder, to: filesystemArchiveURL)
         saveActivitiesToArchiveURL()
     }
@@ -239,6 +242,7 @@ class Filesystem {
     }
     
     func open(_ folder: String) {
+        os_log("Opening folder %@", folder)
         current = current.folders[folder]!
     }
     
@@ -268,10 +272,8 @@ class Filesystem {
         guard !name.isEmpty else {
             throw FilesystemError.cannotRename("Der Name darf nicht leer sein.")
         }
-        for a in current.activities {
-            if !(a.value === activity) && a.value.name == name {
-                throw FilesystemError.cannotRename("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
-            }
+        guard !activities.values.contains(where: {$0.name == activity.name}) else {
+            throw FilesystemError.cannotRename("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\".")
         }
         current.activities[activity.name] = nil
         activity.name = name
@@ -281,10 +283,10 @@ class Filesystem {
     func createActivity(name: String, measurementMethod: MeasurementMethod, unit: String = "", attachmentType: AttachmentType = .none) throws {
         let info = ActivityMetaData(name: name, unit: unit, id: UUID(), measurementMethod: measurementMethod, attachmentType: attachmentType)
         let activity = Activity(info: info)
-        guard !current.activities.keys.contains(name) else {
-            throw FilesystemError.cannotCreate("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\" in \"\(current.url.path)\".")
+        guard !activities.values.contains(where: {$0.name == name}) else {
+            throw FilesystemError.cannotCreate("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\".")
         }
-        try! manager.createDirectory(at: MediaStore.shared.getMediaArchiveURL(for: activity), withIntermediateDirectories: true, attributes: nil)
+        try! manager.createDirectory(at: MediaHandler.shared.getMediaArchiveURL(for: activity), withIntermediateDirectories: true, attributes: nil)
         current.activities[name] = activity
         activities[activity.id] = activity
     }
@@ -297,14 +299,14 @@ class Filesystem {
         try? manager.removeItem(at: urlToRemove.appendingPathExtension("info"))
         try? manager.removeItem(at: urlToRemove.appendingPathExtension("m"))
         try? manager.removeItem(at: urlToRemove.appendingPathExtension("c"))
-        try? manager.removeItem(at: MediaStore.shared.getMediaArchiveURL(for: activity))
+        try? manager.removeItem(at: MediaHandler.shared.getMediaArchiveURL(for: activity))
     }
     
     func moveActivity(_ activity: Activity, from srcURL: URL, to dstURL: URL) throws {
         let sourceFolder = getFolder(at: srcURL)
         let destinationFolder = getFolder(at: dstURL)
-        guard !destinationFolder.activities.keys.contains(activity.name) else {
-            throw FilesystemError.cannotMove("Es gibt bereits eine Aktivität mit dem Namen \"\(activity.name)\" in \"\(destinationFolder.url.path)\"")
+        guard !activities.values.contains(where: { $0.name == activity.name }) else {
+            throw FilesystemError.cannotMove("Es gibt bereits eine Aktivität mit dem Namen \"\(activity.name)\".")
         }
         sourceFolder.activities[activity.name] = nil
         destinationFolder.activities[activity.name] = activity
@@ -337,10 +339,8 @@ class Filesystem {
             throw FilesystemError.cannotDelete("Die Dateisystembasis kann nicht gelöscht werden.")
         }
         for a in folder.activities {
-            if parent.activities.keys.contains(a.key) {
-                throw FilesystemError.cannotDelete("Es gibt bereits eine Aktivität mit dem Namen \"\(a.key)\" in \"\(current.url.path)\".")
-            }
             parent.activities[a.key] = a.value
+            folder.activities[a.key] = nil
         }
         for f in folder.folders {
             if parent.folders.keys.contains(f.key) {

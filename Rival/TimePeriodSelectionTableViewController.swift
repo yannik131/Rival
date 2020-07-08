@@ -17,6 +17,7 @@ class TimePeriodSelectionTableViewController: UITableViewController {
     
     var availableComponents: [(Calendar.Component, String)] = [(.day, "Tag"), (.weekOfYear, "Woche"), (.month, "Monat"), (.year, "Jahr")]
     let engine = PlotEngine.shared
+    let options = Options.getInstance()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,8 +26,8 @@ class TimePeriodSelectionTableViewController: UITableViewController {
         self.granularityPicker.dataSource = self
         self.periodTemplatePicker.delegate = self
         self.periodTemplatePicker.dataSource = self
-        self.granularityPicker.selectRow(availableComponents.firstIndex(where: {$0.0 == engine.granularity})!, inComponent: 0, animated: false)
-        self.periodTemplatePicker.selectRow(PeriodTemplate.allCases.firstIndex(of: engine.periodTemplate)!, inComponent: 0, animated: false)
+        self.granularityPicker.selectRow(availableComponents.firstIndex(where: {$0.0 == options.granularity})!, inComponent: 0, animated: false)
+        self.periodTemplatePicker.selectRow(PeriodTemplate.allCases.firstIndex(of: options.periodTemplate)!, inComponent: 0, animated: false)
         dateButton.setTitle(engine.rangeString, for: .normal)
     }
     
@@ -40,8 +41,8 @@ class TimePeriodSelectionTableViewController: UITableViewController {
             let navigationController = segue.destination as! UINavigationController
             let calendarViewController = navigationController.topViewController as! CalendarViewController
             calendarViewController.selectionMode = .rangeSelection
-            calendarViewController.firstDate = engine.startDate
-            calendarViewController.secondDate = engine.endDate
+            calendarViewController.firstDate = options.startDate
+            calendarViewController.secondDate = options.endDate
             calendarViewController.rangeSelectionCallback = {
                 self.engine.setDateRange(from: $0, to: $1)
             }
@@ -101,7 +102,7 @@ extension TimePeriodSelectionTableViewController: UIPickerViewDelegate, UIPicker
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch(pickerView) {
         case self.granularityPicker:
-            engine.granularity = availableComponents[row].0
+            options.granularity = availableComponents[row].0
         case self.periodTemplatePicker:
             engine.changePeriodTemplate(to: PeriodTemplate.allCases[row])
             dateButton.setTitle(engine.rangeString, for: .normal)

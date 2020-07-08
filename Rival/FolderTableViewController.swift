@@ -63,6 +63,7 @@ class FolderTableViewController: UITableViewController {
     //MARK: - Properties
     
     let filesystem = Filesystem.shared
+    let options = Options.getInstance()
     var cellList: [CellInformation] = []
     var mode: Mode = .createFolder
     ///If mode is .plotSelection, this will be called in didSelectRow
@@ -164,6 +165,7 @@ class FolderTableViewController: UITableViewController {
             guard let activity = cellInformation.activity else {
                 return
             }
+            options.activityID = activity.id
             selectionCallback!(activity, nil)
             deselectAll()
             cellInformation.state = .selected
@@ -175,6 +177,7 @@ class FolderTableViewController: UITableViewController {
             guard let folder = cellInformation.folder else {
                 return
             }
+            options.folderURL = folder.url
             let activities = folder.activities.values
             if activities.isEmpty {
                 return

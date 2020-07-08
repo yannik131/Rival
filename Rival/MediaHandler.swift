@@ -35,15 +35,18 @@ enum MediaError: Error {
     case WatchVideoError(String)
 }
 
-protocol MediaDelegate: AVAudioRecorderDelegate, AVAudioPlayerDelegate, UIImagePickerControllerDelegate & UINavigationControllerDelegate, UIViewController {
-    func throwError(_ error: Error)
+protocol ErrorDelegate: UIViewController {
+    func presentError(_ error: Error)
 }
 
-class MediaStore {
+protocol MediaDelegate: ErrorDelegate, AVAudioRecorderDelegate, AVAudioPlayerDelegate, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+}
+
+class MediaHandler {
     
     //MARK: - Properties
     
-    static let shared = MediaStore()
+    static let shared = MediaHandler()
     var delegate: MediaDelegate?
     var recordButton: UIButton?
     var playButton: UIButton?
@@ -96,14 +99,14 @@ class MediaStore {
             recordingSession.requestRecordPermission() { allowed in
                 DispatchQueue.main.async {
                     if !allowed {
-                        self.delegate?.throwError(MediaError.RecordAudioError("Keine Rechte für Mikrofonzugriff. Die Rechte können Sie unter Systemeinstellungen - Rival ändern."))
+                        self.delegate?.presentError(MediaError.RecordAudioError("Keine Rechte für Mikrofonzugriff. Die Rechte können Sie unter Systemeinstellungen - Rival ändern."))
                     }
                 }
             }
             self.recordingSession = recordingSession
         }
         catch {
-            delegate?.throwError(MediaError.RecordAudioError("Unbekannter Fehler: \(error.localizedDescription)"))
+            delegate?.presentError(MediaError.RecordAudioError("Unbekannter Fehler: \(error.localizedDescription)"))
         }
     }
     
@@ -129,7 +132,7 @@ class MediaStore {
     
     @objc private func playAudioButtonTapped() {
         guard !(audioRecorder?.isRecording ?? false) else {
-            delegate?.throwError(MediaError.PlayAudioError("Es wird gerade aufgenommen."))
+            delegate?.presentError(MediaError.PlayAudioError("Es wird gerade aufgenommen."))
             return
         }
         //Doing this instead of .recordAndPlay solved a volume issue on my device
@@ -145,7 +148,7 @@ class MediaStore {
     
     private func startRecording() {
         guard !(audioPlayer?.isPlaying ?? false) else {
-            delegate?.throwError(MediaError.RecordAudioError("Die Datei kann nicht geändert werden, da sie gerade abgespielt wird."))
+            delegate?.presentError(MediaError.RecordAudioError("Die Datei kann nicht geändert werden, da sie gerade abgespielt wird."))
             return
         }
         audioPlayer = nil
@@ -205,7 +208,7 @@ class MediaStore {
     @objc func recordPhotoTapped() {
         let imagePicker = UIImagePickerController()
         if !UIImagePickerController.isSourceTypeAvailable(.camera) {
-            delegate?.throwError(MediaError.RecordPhotoError("Das Gerät hat keine Kamera."))
+            delegate?.presentError(MediaError.RecordPhotoError("Das Gerät hat keine Kamera."))
         }
         imagePicker.delegate = delegate
         imagePicker.sourceType = .camera
@@ -244,13 +247,13 @@ class MediaStore {
     @objc func recordVideoTapped() {
         let imagePicker = UIImagePickerController()
         if !UIImagePickerController.isSourceTypeAvailable(.camera) {
-            delegate?.throwError(MediaError.RecordPhotoError("Das Gerät hat keine Kamera."))
+            delegate?.presentError(MediaError.RecordPhotoError("Das Gerät hat keine Kamera."))
         }
         imagePicker.sourceType = .camera
         //Order is important here, do this before assigning the delegate
         imagePicker.mediaTypes = [kUTTypeMovie as String]
         if !(UIImagePickerController.availableMediaTypes(for: .camera)?.contains(kUTTypeMovie as String) ?? false) {
-            delegate?.throwError(MediaError.RecordVideoError("Dieses Gerät kann keine Videos aufnehmen."))
+            delegate?.presentError(MediaError.RecordVideoError("Dieses Gerät kann keine Videos aufnehmen."))
         }
         imagePicker.delegate = delegate
         imagePicker.cameraCaptureMode = .video

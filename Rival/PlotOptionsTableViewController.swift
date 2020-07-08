@@ -14,17 +14,17 @@ class PlotOptionsTableViewController: UITableViewController {
     @IBOutlet weak var plotTypePicker: UIPickerView!
     @IBOutlet weak var ignoreZerosSwitch: UISwitch!
     
-    let engine = PlotEngine.shared
+    let options = Options.getInstance()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         plotTitlePicker.delegate = self
         plotTitlePicker.dataSource = self
-        plotTitlePicker.selectRow(PlotTitleState.allCases.firstIndex(where: {$0 == engine.plotTitleState})!, inComponent: 0, animated: true)
+        plotTitlePicker.selectRow(PlotTitleState.allCases.firstIndex(where: {$0 == options.plotTitleState})!, inComponent: 0, animated: true)
         plotTypePicker.delegate = self
         plotTypePicker.dataSource = self
-        plotTypePicker.selectRow(PlotType.allCases.firstIndex(where: {$0 == engine.plotType})!, inComponent: 0, animated: true)
-        ignoreZerosSwitch.isOn = engine.ignoreZeros
+        plotTypePicker.selectRow(PlotType.allCases.firstIndex(where: {$0 == options.plotType})!, inComponent: 0, animated: true)
+        ignoreZerosSwitch.isOn = options.ignoreZeros
         ignoreZerosSwitch.addTarget(self, action: #selector(ignoreZerosSwitchTapped), for: .touchUpInside)
         ignoreZerosSwitch.onTintColor = UIColor(red: 0.1, green: 0.7, blue: 0.1, alpha: 1)
     }
@@ -32,7 +32,7 @@ class PlotOptionsTableViewController: UITableViewController {
     //MARK: - Actions
     
     @objc private func ignoreZerosSwitchTapped() {
-        engine.ignoreZeros = ignoreZerosSwitch.isOn
+        options.ignoreZeros = ignoreZerosSwitch.isOn
     }
 
     // MARK: - Table view data source
@@ -57,10 +57,10 @@ extension PlotOptionsTableViewController: UIPickerViewDelegate {
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         if pickerView == plotTitlePicker {
-            engine.plotTitleState = PlotTitleState.allCases[row]
+            options.plotTitleState = PlotTitleState.allCases[row]
         }
         else if pickerView == plotTypePicker {
-            engine.plotType = PlotType.allCases[row]
+            options.plotType = PlotType.allCases[row]
         }
     }
 }

@@ -24,7 +24,7 @@ class TabBarViewController: UITabBarController {
         case 1: //Plot
             if let navigationController = self.viewControllers![1] as? UINavigationController {
                 let plotController = navigationController.topViewController as! PlotViewController
-                plotController.refreshPlot()
+                //plotController.refreshPlot()
             }
         default:
             break
