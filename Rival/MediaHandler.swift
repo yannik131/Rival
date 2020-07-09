@@ -291,11 +291,11 @@ class MediaHandler {
             playButton?.setTitle("Abspielen", for: .normal)
         }
         if recorded {
-            playButton?.enable()
+            //playButton?.enable()
             recordButton?.setTitle("Neu aufnehmen", for: .normal)
         }
         else {
-            playButton?.disable()
+            //playButton?.disable()
             recordButton?.setTitle("Aufnehmen", for: .normal)
         }
     }

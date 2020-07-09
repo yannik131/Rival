@@ -12,8 +12,7 @@ class TabBarViewController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+        navigationController?.setNavigationBarHidden(true, animated: false)
     }
     
     override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
@@ -23,23 +22,12 @@ class TabBarViewController: UITabBarController {
             break
         case 1: //Plot
             if let navigationController = self.viewControllers![1] as? UINavigationController {
-                let plotController = navigationController.topViewController as! PlotViewController
+                //let plotController = navigationController.topViewController as! PlotViewController
                 //plotController.refreshPlot()
             }
         default:
             break
         }
     }
-    
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
 
 }

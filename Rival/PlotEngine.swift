@@ -212,7 +212,7 @@ class PlotEngine {
         if plotType == .line && activity.measurementMethod == .yesNo {
             return "Summe: \(Int(sum))x"
         }
-        switch(options.plotTitleState) {
+        switch(options.plotTitleState!) {
         case .sum:
             title += "\(activity.measurementToString(measurement: sum))"
         case .average:

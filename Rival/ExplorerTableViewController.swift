@@ -93,7 +93,6 @@ class ExplorerTableViewController: UITableViewController{
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        os_log("%@::%@: Requesting cell for row at %@", #file, #function, indexPath.description)
         if let activity = getSelectedActivity(for: indexPath) {
             guard let cell = tableView.dequeueReusableCell(withIdentifier: "activityCell", for: indexPath) as? ActivityTableViewCell else {
                 os_log("Failed to reuse ActivityTableViewCell")

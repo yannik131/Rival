@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         Filesystem.shared.loadFromArchiveURL()
         let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(exactly: 10)!, repeats: true) {_ in
             Filesystem.shared.saveToArchiveURL()
+            Options.getInstance().save()
         }
         timer.tolerance = TimeInterval(exactly: 1)!
         return true

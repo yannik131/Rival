@@ -106,9 +106,12 @@ class Filesystem {
     let documentsURL: URL
     let filesystemArchiveURL: URL
     let activitiesArchiveURL: URL
+    let cookieURL: URL
+    let userProfileURL: URL
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
     let manager = FileManager.default
+    var URLSnapshot: [URL] = []
     var count: Int {
         return current.activities.count + current.folders.count
     }
@@ -122,6 +125,8 @@ class Filesystem {
         documentsURL = manager.urls(for: .documentDirectory, in: .allDomainsMask).first!
         filesystemArchiveURL = documentsURL.appendingPathComponent("filesystem.json", isDirectory: false)
         activitiesArchiveURL = documentsURL.appendingPathComponent("act", isDirectory: true)
+        cookieURL = documentsURL.appendingPathComponent("session.cookie", isDirectory: false)
+        userProfileURL = documentsURL.appendingPathComponent("user.profile", isDirectory: false)
         if !manager.fileExists(atPath: activitiesArchiveURL.path) {
             os_log("Creating activities save directory at %@", activitiesArchiveURL.path)
             try! manager.createDirectory(at: activitiesArchiveURL, withIntermediateDirectories: true, attributes: nil)
@@ -214,8 +219,11 @@ class Filesystem {
     
     func saveToArchiveURL() {
         let urls = getStructureAsURLs()
-        os_log("Saving tree structure to %@", filesystemArchiveURL.path)
-        try! Serialization.save(urls, with: encoder, to: filesystemArchiveURL)
+        if urls != URLSnapshot {
+            os_log("Saving tree structure to %@", filesystemArchiveURL.path)
+            try! Serialization.save(urls, with: encoder, to: filesystemArchiveURL)
+            URLSnapshot = urls
+        }
         saveActivitiesToArchiveURL()
     }
     
@@ -223,6 +231,7 @@ class Filesystem {
         loadActivitiesFromArchiveURL()
         if let urls = try? Serialization.load([URL].self, with: decoder, from: filesystemArchiveURL) {
             loadStructureFromURLs(urls)
+            URLSnapshot = urls
         }
     }
     

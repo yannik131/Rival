@@ -8,6 +8,7 @@
 
 import Foundation
 import os.log
+import UIKit
 
 extension CharacterSet {
     static let rfc3986Unreserved = CharacterSet(charactersIn:
@@ -15,10 +16,18 @@ extension CharacterSet {
 }
 
 class NetworkSession {
-    private static var instance: NetworkSession?
-    let serverURL = "http://127.0.0.1:8000/"
+    static let shared = NetworkSession()
+    let serverURL = "http://192.168.0.79:8000/"
     var cookie: String?
     var postString: String?
+    var errorDelegate: UIViewController?
+    var presentErrors: Bool = true
+    
+    init() {
+        if FileManager.default.fileExists(atPath: Filesystem.shared.cookieURL.path) {
+            cookie = try! Serialization.load(String.self, with: Filesystem.shared.decoder, from: Filesystem.shared.cookieURL)
+        }
+    }
     
     func setBody(_ args: String...) {
         guard args.count % 2 == 0 else {
@@ -32,7 +41,7 @@ class NetworkSession {
         postString!.removeLast()
     }
     
-    func post(_ urlString: String, saveCookie: Bool = false, handler: ((String) -> Void)? = nil) {
+    func post(_ urlString: String, saveCookie: Bool = false, handler: ((_ response: String?, _ error: Error?) -> Void)? = nil) {
         guard let postString = postString else {
             os_log("post called without a post message")
             return
@@ -45,28 +54,30 @@ class NetworkSession {
         let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
             if let error = error {
-                os_log("Error making connection: %@", error.localizedDescription)
-                return
+                os_log("Could not connect to server: %@", String(describing: error))
+                if self.presentErrors {
+                    DispatchQueue.main.async {
+                        presentErrorAlert(presentingViewController: UIApplication.getTopViewController()!, error: error, title: "Verbindung nicht möglich")
+                    }
+                    
+                }
             }
             
             if saveCookie, let response = response as? HTTPURLResponse {
                 self.cookie =  response.allHeaderFields["Set-Cookie"] as? String
+                if let cookie = self.cookie {
+                    os_log("Saving the cookie")
+                    try! Serialization.save(cookie, with: Filesystem.shared.encoder, to: Filesystem.shared.cookieURL)
+                }
             }
-            
+            var responseString: String?
             if let data = data, let dataString = String(data: data, encoding: .utf8) {
-                print("Response: \(dataString)")
-                handler?(dataString)
+                responseString = dataString
+            }
+            DispatchQueue.main.async {
+                handler?(responseString, error)
             }
         }
         task.resume()
-    }
-    
-    private init() { }
-    
-    static func getInstance() -> NetworkSession {
-        if NetworkSession.instance == nil {
-            NetworkSession.instance = NetworkSession()
-        }
-        return NetworkSession.instance!
     }
 }

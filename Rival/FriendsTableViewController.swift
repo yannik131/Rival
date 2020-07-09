@@ -8,11 +8,9 @@
 import UIKit
 import Contacts
 
-class FriendsTableViewController: UITableViewController, InputDelegate {
+class FriendsTableViewController: UITableViewController {
     
     //MARK: - Properties
-    
-    var networkHandler: NetworkHandler?
     
     var friends: [String] = []
     var rivals: [String] = []
@@ -26,7 +24,6 @@ class FriendsTableViewController: UITableViewController, InputDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        networkHandler = NetworkHandler.getInstance(delegate: self)
     }
     
     //MARK: - Actions
@@ -36,23 +33,6 @@ class FriendsTableViewController: UITableViewController, InputDelegate {
     }
     
     //MARK: - InputDelegate
-    
-    func requestInputs(title: String, message: String, defaults: [String], completion: ((UIAlertController) -> Void)?)  {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
-        for value in defaults {
-            alert.addTextField() { (textField) in
-                textField.text = value
-                textField.clearButtonMode = .always
-            }
-        }
-        
-        alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: { (action) in
-            completion?(alert)
-        }))
-        alert.addAction(UIAlertAction(title: "Abbrechen", style: UIAlertAction.Style.cancel, handler: nil))
-        
-        navigationController!.present(alert, animated: true, completion: nil)
-    }
     
     func presentError(_ error: Error) {
         

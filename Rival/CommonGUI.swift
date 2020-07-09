@@ -9,6 +9,29 @@
 import Foundation
 import UIKit
 
+extension UIApplication {
+
+    class func getTopViewController(base: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UIViewController? {
+
+        if let nav = base as? UINavigationController {
+            return getTopViewController(base: nav.visibleViewController)
+
+        } else if let tab = base as? UITabBarController, let selected = tab.selectedViewController {
+            return getTopViewController(base: selected)
+
+        } else if let presented = base?.presentedViewController {
+            return getTopViewController(base: presented)
+        }
+        return base
+    }
+}
+
+func presentMessage(presentingViewController: UIViewController, title: String, message: String) {
+    let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
+    alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
+    presentingViewController.present(alert, animated: true, completion: nil)
+}
+
 public func presentErrorAlert(presentingViewController: UIViewController, error: Error! = nil, title: String? = nil, message: String? = nil) {
     guard error != nil || message != nil else {
         fatalError()
@@ -54,12 +77,11 @@ public func presentErrorAlert(presentingViewController: UIViewController, error:
             message = msg
         }
     }
-    let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertController.Style.alert)
-    alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
-    presentingViewController.present(alert, animated: true, completion: nil)
+    presentMessage(presentingViewController: presentingViewController, title: title, message: message)
 }
 
 @objc protocol DoneButton {
+    //Resign first responder in here
     @objc func doneCallback()
 }
 
