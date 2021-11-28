@@ -1,0 +1,28 @@
+PODS:
+  - Charts (3.5.0):
+    - Charts/Core (= 3.5.0)
+  - Charts/Core (3.5.0)
+  - GRDB.swift (4.14.0):
+    - GRDB.swift/standard (= 4.14.0)
+  - GRDB.swift/standard (4.14.0)
+  - JTAppleCalendar (8.0.3)
+
+DEPENDENCIES:
+  - Charts
+  - GRDB.swift
+  - JTAppleCalendar
+
+SPEC REPOS:
+  trunk:
+    - Charts
+    - GRDB.swift
+    - JTAppleCalendar
+
+SPEC CHECKSUMS:
+  Charts: 40a08591df1f8ad5c223ddedfb1a06da92f24f7c
+  GRDB.swift: 8cc3ab7c8b8b4ac1761deb8dca4b51c1c9d429f8
+  JTAppleCalendar: 932cadea40b1051beab10f67843451d48ba16c99
+
+PODFILE CHECKSUM: 81fc27938ca258088d2551809ae768714f28158f
+
+COCOAPODS: 1.9.1

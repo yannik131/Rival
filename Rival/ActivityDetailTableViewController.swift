@@ -13,6 +13,7 @@ import AVFoundation
 import MobileCoreServices
 //AVPlayerViewController
 import AVKit
+import os.log
 
 class ActivityDetailTableViewController: UITableViewController, UITextFieldDelegate, UITextViewDelegate, DoneButton {
     
@@ -141,12 +142,12 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     }
     
     private func setDateButtonDate() {
-        self.dateButton.setTitle(self.chosenDate.dateString(), for: .normal)
+        self.dateButton.setTitle(self.chosenDate.dateString(with: DateFormats.shortYear), for: .normal)
         if self.chosenDate.isToday() {
-            self.dateButton.titleLabel!.font = UIFont.boldSystemFont(ofSize: 18)
+            self.dateButton.titleLabel!.font = UIFont.boldSystemFont(ofSize: 14)
         }
         else {
-            self.dateButton.titleLabel!.font = UIFont.systemFont(ofSize: 18)
+            self.dateButton.titleLabel!.font = UIFont.systemFont(ofSize: 14)
         }
     }
     
@@ -180,22 +181,15 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
     
     private func addOrSubstract(substract: Bool) {
         let info: (title: String, msg: String)
-        let amount: Double
         if substract {
             info = ("Subtrahiere", "subtrahierenden")
-            amount = lastSubstractAmount
         }
         else {
             info = ("Addiere", "addierenden")
-            amount = lastAddAmount
         }
         let alert = UIAlertController(title: info.title, message: "Gebe den zu \(info.msg) Wert ein:", preferredStyle: .alert)
         
         alert.addTextField { (textField) in
-            if self.lastAddAmount != 0 {
-                //I think this is annoying.
-                //textField.text = String(amount)
-            }
             textField.keyboardType = .decimalPad
             textField.clearButtonMode = .whileEditing
         }
@@ -241,6 +235,20 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         else {
             leftButton.isEnabled = false
             middleButton.isEnabled = false
+        }
+        if activity.attachmentType != .none {
+            if filesystem.manager.fileExists(atPath: MediaHandler.shared.getMediaArchiveURL(for: activity, at: chosenDate).path) {
+                playButton.enable()
+            }
+            else {
+                playButton.disable()
+            }
+            if !chosenDate.isToday() {
+                createButton.disable()
+            }
+            else {
+                createButton.enable()
+            }
         }
     }
     
@@ -365,7 +373,7 @@ class ActivityDetailTableViewController: UITableViewController, UITextFieldDeleg
         case "PresentImage":
             break
         default:
-            fatalError()
+            break
         }
     }
     

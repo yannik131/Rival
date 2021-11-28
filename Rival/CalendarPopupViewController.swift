@@ -38,12 +38,11 @@ class CalendarViewController: UIViewController {
     var currentDate = Date().startOfMonth
     var firstDate: Date? = nil
     var secondDate: Date? = nil
-    let startDate = DateFormats.full.date(from: "01.01.2019")!
-    let endDate = DateFormats.full.date(from: "01.01.2021")!
+    var startDate: Date = Date().addingDays(days: -365*10)
+    let endDate: Date = Date().addingDays(days: 365)
     var singleSelectionCallback: ((Date) -> Void)!
     var rangeSelectionCallback: ((Date, Date) -> Void)!
     var selectionMode: Mode = .singleSelection
-    var internallyInitiated: Bool = false
     var activity: Activity?
     let filesystem = Filesystem.shared
     let iso = Calendar.iso
@@ -52,6 +51,11 @@ class CalendarViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+    
+        let old = activity?.oldestDate() ?? startDate
+        if old < startDate {
+            startDate = old
+        }
         calendar.calendarDelegate = self
         calendar.calendarDataSource = self
         tableView.delegate = self

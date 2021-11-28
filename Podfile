@@ -6,6 +6,7 @@ target 'Rival' do
   use_frameworks!
   pod 'JTAppleCalendar'
   pod 'Charts'
+  pod 'GRDB.swift'
 
   # Pods for Rival
 

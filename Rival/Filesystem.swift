@@ -24,10 +24,7 @@ extension URL {
     
     ///If the folder- or filename consists of only an UUID, this will retrieve it
     var id: UUID? {
-        if let id = UUID(uuidString: self.deletingPathExtension().lastPathComponent) {
-            return id
-        }
-        return nil
+        return UUID(uuidString: self.deletingPathExtension().lastPathComponent)
     }
 }
 
@@ -76,14 +73,23 @@ class Folder {
 
 final class Serialization {
     private init() {}
-    public static func save<T>(_ stuff: T, with encoder: JSONEncoder, to url: URL) throws where T: Encodable {
+    public static func save<T>(_ stuff: T, with encoder: JSONEncoder = Filesystem.shared.encoder, to url: URL) throws where T: Encodable {
         let data = try encoder.encode(stuff)
         let jsonString = String(data: data, encoding: .utf8)!
         try jsonString.write(to: url, atomically: false, encoding: .utf8)
     }
 
-    public static func load<T>(_ type: T.Type, with decoder: JSONDecoder, from url: URL) throws -> T where T: Decodable {
-        let jsonString = try String(contentsOf: url)
+    public static func load<T>(_ type: T.Type, with decoder: JSONDecoder = Filesystem.shared.decoder, from url: URL? = nil, string: String? = nil) throws -> T where T: Decodable {
+        let jsonString: String
+        if let url = url {
+            jsonString = try String(contentsOf: url)
+        }
+        else if let string = string {
+            jsonString = string
+        }
+        else {
+            fatalError()
+        }
         let data = jsonString.data(using: .utf8)!
         return try decoder.decode(type, from: data)
     }
@@ -106,8 +112,6 @@ class Filesystem {
     let documentsURL: URL
     let filesystemArchiveURL: URL
     let activitiesArchiveURL: URL
-    let cookieURL: URL
-    let userProfileURL: URL
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
     let manager = FileManager.default
@@ -125,8 +129,6 @@ class Filesystem {
         documentsURL = manager.urls(for: .documentDirectory, in: .allDomainsMask).first!
         filesystemArchiveURL = documentsURL.appendingPathComponent("filesystem.json", isDirectory: false)
         activitiesArchiveURL = documentsURL.appendingPathComponent("act", isDirectory: true)
-        cookieURL = documentsURL.appendingPathComponent("session.cookie", isDirectory: false)
-        userProfileURL = documentsURL.appendingPathComponent("user.profile", isDirectory: false)
         if !manager.fileExists(atPath: activitiesArchiveURL.path) {
             os_log("Creating activities save directory at %@", activitiesArchiveURL.path)
             try! manager.createDirectory(at: activitiesArchiveURL, withIntermediateDirectories: true, attributes: nil)
@@ -251,19 +253,26 @@ class Filesystem {
     }
     
     func open(_ folder: String) {
-        os_log("Opening folder %@", folder)
         current = current.folders[folder]!
     }
     
     func open(_ url: URL) {
+        guard let folder = getFolder(at: url) else {
+            return
+        }
         close(all: true)
-        current = getFolder(at: url)
+        current = folder
     }
     
-    func getFolder(at url: URL) -> Folder {
+    func getFolder(at url: URL) -> Folder? {
         var folder = root
         for component in url.pathComponents[1...] {
-            folder = folder.folders[component]!
+            if let f = folder.folders[component] {
+                folder = f
+            }
+            else {
+                return nil
+            }
         }
         return folder
     }
@@ -281,7 +290,7 @@ class Filesystem {
         guard !name.isEmpty else {
             throw FilesystemError.cannotRename("Der Name darf nicht leer sein.")
         }
-        guard !activities.values.contains(where: {$0.name == activity.name}) else {
+        guard activities.values.contains(where: {$0.name == activity.name}) else {
             throw FilesystemError.cannotRename("Es gibt bereits eine Aktivität mit dem Namen \"\(name)\".")
         }
         current.activities[activity.name] = nil
@@ -312,10 +321,9 @@ class Filesystem {
     }
     
     func moveActivity(_ activity: Activity, from srcURL: URL, to dstURL: URL) throws {
-        let sourceFolder = getFolder(at: srcURL)
-        let destinationFolder = getFolder(at: dstURL)
-        guard !activities.values.contains(where: { $0.name == activity.name }) else {
-            throw FilesystemError.cannotMove("Es gibt bereits eine Aktivität mit dem Namen \"\(activity.name)\".")
+        guard let sourceFolder = getFolder(at: srcURL),
+              let destinationFolder = getFolder(at: dstURL) else {
+            return
         }
         sourceFolder.activities[activity.name] = nil
         destinationFolder.activities[activity.name] = activity
@@ -362,11 +370,13 @@ class Filesystem {
     }
     
     func moveFolder(from srcURL: URL, to dstURL: URL) throws {
-        let sourceFolder = getFolder(at: srcURL)
+        guard let sourceFolder = getFolder(at: srcURL),
+              let destinationFolder = getFolder(at: dstURL) else {
+            throw FilesystemError.cannotMove("Ziel- oder zu verschiebener Ordner existieren nicht mehr.")
+        }
         guard let parent = sourceFolder.parent else {
             throw FilesystemError.cannotMove("Die Dateisystembasis kann nicht verschoben werden.")
         }
-        let destinationFolder = getFolder(at: dstURL)
         let srcName = srcURL.lastPathComponent
         if destinationFolder.folders.keys.contains(srcName) {
             throw FilesystemError.cannotMove("Es gibt bereits einen Ordner mit dem Namen \"\(srcName)\" in \"\(current.url.path)\".")

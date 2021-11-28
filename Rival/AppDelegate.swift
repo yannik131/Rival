@@ -17,11 +17,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         DateFormats.initialize(locale: Locale(identifier: "de_DE"))
         Calendar.initialize(locale: Locale(identifier: "de_DE"))
         Filesystem.shared.loadFromArchiveURL()
-        let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(exactly: 10)!, repeats: true) {_ in
+        /*let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(exactly: 10)!, repeats: true) {_ in
             Filesystem.shared.saveToArchiveURL()
             Options.getInstance().save()
         }
-        timer.tolerance = TimeInterval(exactly: 1)!
+        timer.tolerance = TimeInterval(exactly: 1)!*/
         return true
     }
 

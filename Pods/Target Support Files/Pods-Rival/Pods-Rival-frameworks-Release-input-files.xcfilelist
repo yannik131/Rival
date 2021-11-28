@@ -1,0 +1,4 @@
+${PODS_ROOT}/Target Support Files/Pods-Rival/Pods-Rival-frameworks.sh
+${BUILT_PRODUCTS_DIR}/Charts/Charts.framework
+${BUILT_PRODUCTS_DIR}/GRDB.swift/GRDB.framework
+${BUILT_PRODUCTS_DIR}/JTAppleCalendar/JTAppleCalendar.framework

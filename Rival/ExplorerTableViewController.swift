@@ -34,12 +34,10 @@ class ExplorerTableViewController: UITableViewController{
     override func viewDidLoad() {
         super.viewDidLoad()
         self.setDateButtonDate()
-        os_log("Loading sample data")
         self.loadSampleData()
         self.setUpDateArrows()
         //This is necessary if the segue animations look weird
         self.navigationController!.view.backgroundColor = UIColor.white
-        os_log("Loading Explorer finished")
     }
     
     //MARK: - Actions
@@ -60,6 +58,7 @@ class ExplorerTableViewController: UITableViewController{
     @objc private func closeCurrentFolder() {
         self.adjustRowNumbersAfterAction {
             filesystem.close()
+            tableView.setContentOffset(CGPoint(x: -100, y: -100), animated: true)
         }
     }
     
@@ -69,13 +68,14 @@ class ExplorerTableViewController: UITableViewController{
             editButtonItem.title = "Fertig"
         }
         else {
-            editButtonItem.title = "Bearbeiten"
+            editButtonItem.title = "Edit"
         }
         for index in 0..<filesystem.current.folders.count {
             if let cell = tableView.cellForRow(at: IndexPath(row: index, section: 0)) as? FolderTableViewCell {
                 cell.nameTextField.isEnabled = tableView.isEditing
             }
         }
+        tableView.reloadData()
     }
     
     // MARK: - Table view data source
@@ -126,6 +126,7 @@ class ExplorerTableViewController: UITableViewController{
         if let folder = getSelectedFolder(for: indexPath) {
             self.adjustRowNumbersAfterAction {
                 filesystem.open(folder.name)
+                tableView.setContentOffset(CGPoint(x: -100, y: -100), animated: true)
             }
         }
     }
@@ -209,6 +210,7 @@ class ExplorerTableViewController: UITableViewController{
         leftArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         self.navigationItem.leftBarButtonItems = [self.editButtonItem, leftArrow]
         editButtonItem.action = #selector(editButtonTapped)
+        editButtonItem.title = "Edit"
         let rightArrow = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain, target: self, action: #selector(self.nextDateButtonTapped(_:)))
         rightArrow.imageInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         self.navigationItem.rightBarButtonItems = [self.addButton, rightArrow]
@@ -227,7 +229,6 @@ class ExplorerTableViewController: UITableViewController{
     }
     
     private func adjustRowNumbersAfterAction(action: () -> ()) {
-        os_log("Adjusting row numbers")
         let previousRowCount = filesystem.count
         action()
         let currentRowCount = filesystem.count
@@ -252,10 +253,10 @@ class ExplorerTableViewController: UITableViewController{
     private func setDateButtonDate() {
         self.dateButton.setTitle(self.chosenDate.dateString(), for: .normal)
         if self.chosenDate.isToday() {
-            self.dateButton.titleLabel!.font = UIFont.boldSystemFont(ofSize: 18)
+            self.dateButton.titleLabel!.font = UIFont.boldSystemFont(ofSize: 14)
         }
         else {
-            self.dateButton.titleLabel!.font = UIFont.systemFont(ofSize: 18)
+            self.dateButton.titleLabel!.font = UIFont.systemFont(ofSize: 14)
         }
     }
     
